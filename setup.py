@@ -16,7 +16,7 @@ setup(
         'Intended Audience :: Developers',  # 添加目标受众分类器
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: Apache License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent'
     ],
     python_requires='>=3.9',
