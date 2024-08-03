@@ -4,6 +4,10 @@
 @Desc    : LLMCompiler
 @Time    : 2024-08-02 09:30:49
 """
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from llmcompiler.chat.run import RunLLMCompiler
 from llmcompiler.custom_llms.claude3_compiler import Claude3compilerLLM
 from llmcompiler.graph.token_calculate import SwitchLLM

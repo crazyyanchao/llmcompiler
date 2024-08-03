@@ -11,19 +11,21 @@ import pandas as pd
 
 from langchain_core.tools import tool, StructuredTool
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    raise ImportError(
-        "The 'python-dotenv' package is required to use this class. Please install it using 'pip install python-dotenv'.")
+# try:
+#     from dotenv import load_dotenv
+#
+#     load_dotenv()
+# except ImportError:
+#     raise ImportError(
+#         "The 'python-dotenv' package is required to use this class. Please install it using 'pip install python-dotenv'.")
 
 try:
     import tushare as ts
-    from dotenv import load_dotenv
-
-    load_dotenv()
+    # from dotenv import load_dotenv
+    #
+    # load_dotenv()
+    if "TUSHARE_TOKEN" not in os.environ:
+        raise KeyError("Environment variable 'TUSHARE_TOKEN' is not set. Please set it in your .env file.")
     ts.set_token(os.environ["TUSHARE_TOKEN"])
     pro = ts.pro_api()
 except ImportError:
