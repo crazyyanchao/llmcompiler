@@ -7,6 +7,8 @@
 in the DAG. It also saves the cost of redundant token use by reducing the number of calls to the LLM. The realization
 inspiration comes from An LLM Compiler for Parallel Function Calling.
 
+&emsp;Here is an example of using SQL to query data to illustrate the core role of the framework. The core process of generating an execution plan for SQL includes syntax parsing, semantic analysis, optimizer intervention, and generation of an execution plan. When LLMCompiler executes tool calls based on user instructions, it can actually be understood that LLM helps users do a process similar to SQL to generate execution plans, but the generated plan here is a DAG, and the DAG describes the call relationship between tools and the parameter dependency passing logic.
+
 &emsp;This implementation is useful when the agent needs to call a large number of tools. If the tool you need exceeds
 the context limit of the LLM, you can extend the agent node based on this tool.Divide the tool into different
 agent and assemble them to create a more powerful LLMCompiler. Another case has been
