@@ -3,7 +3,7 @@ name: Publish Python package to PyPI
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v1.0.21'
     branches:
       - main
   workflow_dispatch:
