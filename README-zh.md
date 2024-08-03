@@ -3,7 +3,7 @@
 [![English](https://img.shields.io/badge/English-Click-yellow)](README.md)
 [![中文文档](https://img.shields.io/badge/中文文档-点击查看-orange)](README-zh.md)
 
-&emsp;LLMCompiler 是一种 Agent 架构，旨在通过在DAG中快速执行任务来加快代理任务的执行速度。它还通过减少对 LLM 的调用次数来节省冗余令牌使用的成本。实现
+&emsp;LLMCompiler 是一种 Agent 架构，旨在通过在DAG中快速执行任务来加快 Agent 任务的执行速度。它还通过减少对 LLM 的调用次数来节省 Tokens 使用的成本。实现
 灵感来自《An LLM Compiler for Parallel Function Calling》。
 
 &emsp;当 Agent 需要调用大量工具时，此实现非常有用。如果您需要的工具超过 LLM 的上下文限制，您可以基于此工具扩展代理节点。将工具分为不同的
