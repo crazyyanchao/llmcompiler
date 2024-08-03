@@ -1,31 +1,25 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
-
-long_desc = """
-LLMCompiler
-===============
-
-LLMCompiler Agent
-
-LLMCompiler is an Agent Architecture designed to speed up the execution of agent tasks by executing them quickly in the DAG. It also saves the cost of redundant token use by reducing the number of calls to the LLM. The realization inspiration comes from An LLM Compiler for Parallel Function Calling.
-"""
+from setuptools import setup, find_packages
 
 setup(
-    name='-llmcompiler',
+    name='llmcompiler',
     version="1.0.0",
+    author="Yc-Ma",
+    author_email="yanchaoma@foxmail.com",
     description='LLMCompiler',
-    long_description=long_desc,
-    url='https://github.com/crazyyanchao',
-    keywords='LLMCompiler Agent',
+    long_description=open('README.md', encoding='utf-8').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/crazyyanchao/llmcompiler',
+    packages=find_packages(),
     classifiers=[
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'License :: OSI Approved :: Apache License'
+        'Development Status :: 4 - Beta',  # 添加开发状态分类器
+        'Intended Audience :: Developers',  # 添加目标受众分类器
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: Apache License',
+        'Operating System :: OS Independent'
     ],
-    packages=['llmcompiler'],
-    package_dir={'llmcompiler': 'llmcompiler'},
+    python_requires='>=3.9',
     install_requires=[
         "langgraph>=0.1.19",
         "langchain>=0.2.12",
@@ -33,6 +27,10 @@ setup(
         "pandas>=2.2.2",
         "grandalf"
     ],
+    keywords=['LLMCompiler', 'Agent', 'Natural Language Processing', 'LLM', 'Machine Learning', 'AI', 'Compiler'],
     include_package_data=True,
-    package_data={},
+    package_data={
+        # If any package contains *.txt or *.rst files, include them:
+        '': ['*.txt', '*.rst', '.csv']
+    },
 )
