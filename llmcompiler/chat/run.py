@@ -41,7 +41,9 @@ class RunLLMCompiler(Launch):
         graph = graph_builder.compile()
         print(
             f"==========================初始化工具集和Agent：{round(time.time() - start_time, 2)}秒==========================")
-        graph.get_graph().print_ascii()
+        print("We can convert a graph class into Mermaid syntax.")
+        print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
+        print(graph.get_graph().draw_mermaid())
         return graph
 
     def should_continue(self, state: List[BaseMessage]):
