@@ -6,6 +6,7 @@ on:
       - 'v*.*.*'
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -32,6 +33,6 @@ jobs:
     - name: Publish package
       env:
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
         python -m twine upload dist/*
