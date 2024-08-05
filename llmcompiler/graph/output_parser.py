@@ -80,8 +80,25 @@ def _sort_keys(text: str, keys: List[str]) -> List[str]:
         except ValueError:
             return float('inf')
 
-    sorted_keys = sorted(keys, key=sort_key)
-    return sorted_keys
+    sorted_keys_v1 = sorted(keys, key=sort_key)
+    sorted_keys_v2 = _custom_sort(sorted_keys_v1)
+    return sorted_keys_v2
+
+
+def _custom_sort(fields):
+    """根据字段被包含关系对列表进行排序"""
+    sorted_fields = []
+    while fields:
+        for field in fields:
+            if all(not _filed_contains(other, field) for other in fields if other != field):
+                sorted_fields.append(field)
+                fields.remove(field)
+                break
+    return sorted_fields
+
+
+def _filed_contains(a, b):
+    return b in a
 
 
 def default_dependency_rule(idx, args: str):
