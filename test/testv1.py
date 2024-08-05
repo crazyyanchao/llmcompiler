@@ -1,17 +1,13 @@
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from llmcompiler.result.chat import ChatRequest
 from llmcompiler.tools.tools import DefineTools
 from langchain_openai.chat_models.base import ChatOpenAI
 from llmcompiler.chat.run import RunLLMCompiler
 
-chat = ChatRequest(message="宁德时代的股票代码是什么？")
+chat = ChatRequest(message="<YOUR_MESSAGE>")
 
 # tools 是基于 Langchain BaseTool 的列表。
 # 默认配置仅用于演示，建议继承BaseTool来实现Tool，这样可以更好地控制一些细节。
-# 对于多参数依赖，可以继承 DAGFlowParams，实现参考为`llmcompiler/tools/basetool/fund_basic.py`。
+# 对于多参数依赖，可以继承 DAGFlowParams，实现参考为`llmcompiler/tools/basetool/fund_basic.py`。 
 tools = DefineTools().tools()
 
 # 支持BaseLanguageModel的实现类。

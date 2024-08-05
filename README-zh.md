@@ -43,8 +43,11 @@ tools = DefineTools().tools()
 llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
 
 llm_compiler = RunLLMCompiler(chat, tools, llm)
-result = llm_compiler()
-print(result)
+# 运行完整的LLMCompiler过程
+print(llm_compiler())
+
+# 忽略Joiner过程，将Task与执行结果直接返回
+print(llm_compiler.runWithoutJoiner())
 
 # 更多使用方式可以在`issue`中讨论，后续还会继续完善文档。
 ```

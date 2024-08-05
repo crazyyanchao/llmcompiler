@@ -21,7 +21,7 @@ from llmcompiler.graph.token_calculate import openai_gpt_model_token
 from llmcompiler.custom_llms.claude import Claude3LLM
 from llmcompiler.result.chat import ChatRequest
 from llmcompiler.tools.basetool.fund_basic import FundBasic
-from llmcompiler.tools.basetool.tool_decorator import stock_basic, fund_portfolio, wd_a_desc_2_tool
+from llmcompiler.tools.basetool.tool_decorator import stock_basic, fund_portfolio
 from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
 from llmcompiler.tools.generic.render_description import TOOL_DESC_JOIN_EXAMPLES_MARK
 from llmcompiler.tools.prompt import FILTER_TOOLS_PROMPT
@@ -50,7 +50,7 @@ class DefineTools:
         define_tools = [
             FundBasic(),
             fund_portfolio,
-            wd_a_desc_2_tool()
+            stock_basic
         ]
         logging.info(f"A total of {len(define_tools)} Tools are configured.")
         return define_tools

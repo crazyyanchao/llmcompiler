@@ -6,7 +6,7 @@
 """
 import os
 from abc import abstractmethod, ABC
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple, Any
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import ChatMessage
@@ -15,6 +15,7 @@ from langgraph.constants import END
 from langgraph.graph.graph import CompiledGraph
 
 from llmcompiler.few_shot.few_shot import BaseFewShot, DefaultBaseFewShot
+from llmcompiler.graph.output_parser import Task
 from llmcompiler.graph.plan_and_schedule import PlanAndSchedule
 from llmcompiler.graph.rewrite import Rewrite
 from llmcompiler.graph.token_calculate import SwitchLLM
@@ -109,16 +110,21 @@ class Launch(ABC):
     def init(self) -> CompiledGraph:
         """
         Initialize the graph and define the graph structure.
-        :param planer: 定义规划器LLM。
-        :param joiner: 定义反馈器LLM。
-        :param tools: 定义Tools列表。
-        :param re_planer: 定义重新规划时需要的LLM，默认与`planer`使用相同的LLM。
-        :return: 编译后的图、计划器对象、工具列表
         """
 
     @abstractmethod
     def run(self) -> ChatResponse:
         """Run graph."""
+
+    @abstractmethod
+    def initWithoutJoiner(self) -> CompiledGraph:
+        """
+        Initialize the graph and define the graph structure.
+        """
+
+    @abstractmethod
+    def runWithoutJoiner(self) -> List[Tuple[Task, Any]]:
+        """Run graph without joiner,returns the task and task execution result."""
 
     def response_str(self, final_step: Dict, charts: List[Chart], iteration: int) -> str:
         if 'join' in final_step:

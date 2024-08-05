@@ -9,12 +9,13 @@ import logging
 from langchain_core.messages import BaseMessage, AIMessage
 from langgraph.graph.graph import CompiledGraph
 from langgraph.pregel import GraphRecursionError
-from typing import List, Dict
+from typing import List, Dict, Tuple, Any
 
 from langgraph.graph import MessageGraph, END
 
 from llmcompiler.chat.launch import Launch
 from llmcompiler.graph.joiner import Joiner
+from llmcompiler.graph.output_parser import Task
 from llmcompiler.result.chat import ChatResponse
 
 
@@ -88,3 +89,49 @@ class RunLLMCompiler(Launch):
         end_time = time.time()
         logging.info(f"===========AI-AGENT总和执行时间：{end_time - run_start_time} 秒~\n")
         return self.response(query=self.chat.message, response=response, charts=charts, source=source, labels=labels)
+
+    def initWithoutJoiner(self) -> CompiledGraph:
+        """
+        :param planer: 定义生成DAG时使用的LLM
+        :param tools: 定义Tools，不传入使用默认函数获取Tools
+        """
+        # -----------------------------------初始化工具集和Agent-----------------------------------
+        start_time = time.time()
+        graph_builder = MessageGraph()
+        graph_builder.add_node("plan_and_schedule", self.plan_and_schedule.init)
+        graph_builder.set_entry_point("plan_and_schedule")
+        graph = graph_builder.compile()
+        print(
+            f"==========================初始化工具集和Agent：{round(time.time() - start_time, 2)}秒==========================")
+        print("We can convert a graph class into Mermaid syntax.")
+        print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
+        print(graph.get_graph().draw_mermaid())
+        return graph
+
+    def runWithoutJoiner(self) -> List[Tuple[Task, Any]]:
+        """
+        运行流程：数据提取Agent
+        """
+        start_time: float = time.time()
+        logging.info(self.chat.message)
+
+        # --- 编译 Graph Agent ---
+        graph = self.initWithoutJoiner()
+
+        # -----------------------------------LLMCompiler-Agent执行-----------------------------------
+        results: List = []
+        recursion_limit = 2 * 2 + 1  # (2*(dag+join))*(最大2次迭代)
+        graph_stream = graph.stream(self.rewrite.info(self.chat.message), {'recursion_limit': recursion_limit})
+        try:
+            for step in graph_stream:
+                print(
+                    f"==========================Running, {list(step.keys())}: {round(time.time() - start_time, 2)}秒==========================")
+                tasks = self.plan_and_schedule.tasks_temporary_save
+                observations = self.plan_and_schedule.observations
+                for index, task in enumerate(tasks):
+                    results.append((task, observations.get(index + 1)))
+        except GraphRecursionError as e:
+            logging.error(f"{str(e)}")
+        end_time = time.time()
+        logging.info(f"===========AI-AGENT总和执行时间：{end_time - start_time} 秒~\n")
+        return results
