@@ -423,18 +423,15 @@ def modify_action_output(action_output: Union[ActionOutput, ActionOutputError, A
         else:
             if isinstance(action_output.any, Chart):
                 temp_chart = reset_prompt_chart(action_output.any)
-                any_str = temp_chart.json(ensure_ascii=False)
+                any_str = temp_chart.model_dump_json()
+                return "\n".join([action_output.msg, any_str, "\n" + extra_msg])
             elif isinstance(action_output.any, List):
                 if any(isinstance(x, Chart) for x in action_output.any):
                     temp_charts = reset_prompt_charts(action_output.any)
                     any_str = json.dumps([c.dict() for c in temp_charts], ensure_ascii=False)
-                else:
-                    any_str = json.dumps(action_output.any, ensure_ascii=False)
-            else:
-                any_str = action_output.any
-            return "\n".join([action_output.msg, any_str, "\n" + extra_msg])
-    else:
-        return action_output
+                    return "\n".join([action_output.msg, any_str, "\n" + extra_msg])
+
+    return action_output
 
 
 def reset_prompt_chart(chart: Chart) -> BaseChart:
