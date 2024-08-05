@@ -13,7 +13,7 @@ from langchain.llms.base import LLM
 from langchain.schema import LLMResult, Generation, PromptValue
 
 
-class Claude3compilerLLM(LLM):
+class Claude3LLM(LLM):
     # 温度值
     temperature: float = 0.0
     # 定义模型名称【使用Claude3哪个模型】anthropic.claude-3-sonnet-20240229-v1:0

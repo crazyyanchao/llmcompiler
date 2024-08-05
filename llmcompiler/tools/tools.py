@@ -18,7 +18,7 @@ from langchain_openai import OpenAIEmbeddings
 from pydantic import Field, BaseModel
 
 from llmcompiler.graph.token_calculate import openai_gpt_model_token
-from llmcompiler.custom_llms.claude3_compiler import Claude3compilerLLM
+from llmcompiler.custom_llms.claude import Claude3LLM
 from llmcompiler.result.chat import ChatRequest
 from llmcompiler.tools.basetool.fund_basic import FundBasic
 from llmcompiler.tools.basetool.tool_decorator import stock_basic, fund_portfolio, wd_a_desc_2_tool
@@ -49,7 +49,6 @@ class DefineTools:
         """可使用的Tools列表"""
         define_tools = [
             FundBasic(),
-            stock_basic,
             fund_portfolio,
             wd_a_desc_2_tool()
         ]
@@ -184,7 +183,7 @@ if __name__ == '__main__':
 
     tools = DefineTools(
         ChatRequest(message='汇鑫中短债成立以来单位净值、累计净值情况；易方达新兴产业最近三年收益率和单位净值'))
-    c3_sonnet: Claude3compilerLLM = Claude3compilerLLM(model="anthropic.claude-3-sonnet-20240229-v1:0")
-    c3_opus: Claude3compilerLLM = Claude3compilerLLM(model="anthropic.claude-3-opus-20240229-v1:0")
+    c3_sonnet: Claude3LLM = Claude3LLM(model="anthropic.claude-3-sonnet-20240229-v1:0")
+    c3_opus: Claude3LLM = Claude3LLM(model="anthropic.claude-3-opus-20240229-v1:0")
     # tools.llm_filter(gpt4_32K)
     tools.tools_embedding()

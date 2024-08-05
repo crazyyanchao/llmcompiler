@@ -20,7 +20,6 @@ from llmcompiler.graph.rewrite import Rewrite
 from llmcompiler.graph.token_calculate import SwitchLLM
 from llmcompiler.result.chat import ChatResponse, ChatRequest
 from llmcompiler.tools.generic.action_output import Chart, Source
-from llmcompiler.tools.tools import DefineTools
 
 OUTPUT_TEMPLATE = "I've considered {iteration} times and still don't fully understand your question. Could you ask the question in another way? If there are relevant charts or data you can refer to temporarily."
 
@@ -60,6 +59,7 @@ class Launch(ABC):
         self.init_llm(llm, planer, joiner, re_planer)
 
         if tools is None:
+            from llmcompiler.tools.tools import DefineTools
             self.tools = DefineTools().tools()
         else:
             self.tools = tools

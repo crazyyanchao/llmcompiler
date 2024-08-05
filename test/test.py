@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from llmcompiler.chat.run import RunLLMCompiler
-from llmcompiler.custom_llms.claude3_compiler import Claude3compilerLLM
+from llmcompiler.custom_llms.claude import Claude3compilerLLM
 from llmcompiler.graph.token_calculate import SwitchLLM
 
 from llmcompiler.result.chat import ChatRequest, ChatResponse
