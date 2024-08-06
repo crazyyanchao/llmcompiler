@@ -38,9 +38,10 @@ def run(chat: ChatRequest) -> ChatResponse:
 
 
 if __name__ == '__main__':
-    message = "宁德时代的股票代码是什么？"
+    # message = "宁德时代的股票代码是什么？"
     # message = "501062.SH这支基金的管理人是谁？"
     # message = "501062.SH这支基金的成立日期之后的第二年四季度，持仓情况怎么样？"
+    message = "场内发行中的基金有哪些？"
     chat = ChatRequest(message=message, session_id="session-id0", create_time=formatted_dt_now())
 
     tools = DefineTools().tools()

@@ -5,41 +5,25 @@
 @Time    : 2024-08-02 09:30:49
 """
 import os
-from concurrent.futures import ThreadPoolExecutor
 
 import logging
 import pandas as pd
 
-from langchain.callbacks.manager import (
-    CallbackManagerForToolRun,
-)
 from langchain.tools import BaseTool
 from pydantic import Field, BaseModel
-from typing import Optional, Type, List, Union, Tuple
+from typing import Type, List, Union, Tuple
 
-from llmcompiler.tools.configure.tool_decorator import tool_set_default_value
+from llmcompiler.tools.configure.tool_decorator import tool_set_default_value, tool_kwargs_filter_placeholder, \
+    tool_kwargs_clear
 from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
 from llmcompiler.tools.generic.action_output import ChartType, Chart, dag_flow_params_pack, DAGFlowKwargs, \
     action_output_charts_df_parse, Source
-from llmcompiler.tools.generic.action_input import action_input_list_str_multi
 from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError
 from llmcompiler.tools.generic.render_description import render_text_description
-from llmcompiler.utils.thread.pool_executor import max_worker
-
-# try:
-#     from dotenv import load_dotenv
-#
-#     load_dotenv()
-# except ImportError:
-#     raise ImportError(
-#         "The 'python-dotenv' package is required to use this class. Please install it using 'pip install python-dotenv'.")
 
 try:
     import tushare as ts
 
-    # from dotenv import load_dotenv
-    #
-    # load_dotenv()
     if "TUSHARE_TOKEN" not in os.environ:
         raise KeyError("Environment variable 'TUSHARE_TOKEN' is not set. Please set it in your .env file.")
     ts.set_token(os.environ["TUSHARE_TOKEN"])
@@ -49,14 +33,14 @@ except ImportError:
         "The 'tushare' package is required to use this class. Please install it using 'pip install tushare'.")
 
 
-class FundInfoSchema(BaseModel):
+class FundInfoV2Schema(BaseModel):
     ts_code: Union[str, List[str]] = Field(default=[], description="基金代码")
     market: str = Field(default="E", description="交易市场: E场内 O场外（默认E）")
-    status: str = Field(default=None, description="存续状态 D摘牌 I发行 L上市中")
+    status: str = Field(description="存续状态 D摘牌 I发行 L上市中")
 
 
-class FundBasic(BaseTool, DAGFlowParams):
-    name = "fund_basic"
+class FundBasicV2(BaseTool, DAGFlowParams):
+    name = "fund_basic_v2"
     description = render_text_description(
         "功能：获取公募基金数据列表，包括场内和场外基金。"
         "输入参数：基金代码；交易市场: E场内 O场外（默认E）；存续状态 D摘牌 I发行 L上市中。"
@@ -64,23 +48,19 @@ class FundBasic(BaseTool, DAGFlowParams):
         "管理费；托管费；存续期；面值；起点金额(万元)；预期收益率；业绩比较基准；存续状态D摘牌 I发行 L已上市；投资风格；"
         "基金类型；受托人；日常申购起始日；日常赎回起始日；E场内O场外。"
     )
-    args_schema: Type[BaseModel] = FundInfoSchema
+    args_schema: Type[BaseModel] = FundInfoV2Schema
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @tool_set_default_value(ts_code="", market="", status="")
-    def _run(
-            self, ts_code: Union[str, List[str]], market: str, status: str,
-            run_manager: Optional[CallbackManagerForToolRun] = None
-    ) -> ActionOutput:
+    @tool_set_default_value()
+    @tool_kwargs_filter_placeholder
+    @tool_kwargs_clear
+    def _run(self, **kwargs) -> ActionOutput:
         """Use the tool."""
         try:
-            # params = action_input_list_str_multi([ts_code, market, status])
-            params = [[ts_code, market, status]]
-            with ThreadPoolExecutor(max_workers=max_worker()) as executor:
-                results = list(executor.map(lambda x: self.chart(x[0], x[1], x[2]), params))
-            tuple = action_output_charts_df_parse(results)
+            result = self.chart(**kwargs)
+            tuple = action_output_charts_df_parse([result])
             charts = tuple[0]
             df = pd.concat(tuple[1])
             if charts:
@@ -104,9 +84,9 @@ class FundBasic(BaseTool, DAGFlowParams):
             DAGFlowKwargs(field_en='found_date', field_cn='基金成立日期', description='')
         ]
 
-    def chart(self, ts_code: str = None, market: str = None, status: str = None) -> Tuple[Chart, pd.DataFrame]:
+    def chart(self, **kwargs) -> Tuple[Chart, pd.DataFrame]:
         try:
-            df = pro.fund_basic(ts_code=ts_code, market=market, status=status)
+            df = pro.fund_basic(**kwargs)
             if not df.empty:
                 columns = df.columns.values.tolist()
                 result = {"labels": columns, "data": df.values.tolist()}
@@ -123,7 +103,7 @@ class FundBasic(BaseTool, DAGFlowParams):
 
 
 if __name__ == '__main__':
-    info = FundBasic()
+    info = FundBasicV2()
     print(info.name)
     print(info.description)
     print(info.args)
