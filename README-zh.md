@@ -56,4 +56,5 @@ print(llm_compiler.runWithoutJoiner())
 
 - [论文: An LLM Compiler for Parallel Function Calling](https://arxiv.org/abs/2312.04511)
 - [部分参考代码: LLMCompiler From Github](https://github.com/langchain-ai/langgraph/blob/main/examples/llm-compiler/LLMCompiler.ipynb)
+- [ICML 2024 LLMCompiler：一种用于并行函数调用的LLM编译器](https://github.com/SqueezeAILab/LLMCompiler)
 

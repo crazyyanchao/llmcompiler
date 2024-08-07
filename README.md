@@ -59,4 +59,4 @@ print(llm_compiler.runWithoutJoiner())
 
 - [Paper: An LLM Compiler for Parallel Function Calling](https://arxiv.org/abs/2312.04511)
 - [Partial Code: LLMCompiler From Github](https://github.com/langchain-ai/langgraph/blob/main/examples/llm-compiler/LLMCompiler.ipynb)
-
+- [ICML 2024 LLMCompiler: An LLM Compiler for Parallel Function Calling](https://github.com/SqueezeAILab/LLMCompiler)
