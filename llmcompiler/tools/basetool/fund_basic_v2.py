@@ -14,7 +14,7 @@ from pydantic import Field, BaseModel
 from typing import Type, List, Union, Tuple
 
 from llmcompiler.tools.configure.tool_decorator import tool_set_default_value, tool_kwargs_filter_placeholder, \
-    tool_kwargs_clear
+    tool_kwargs_clear, tool_kwargs_filter, tool_set_pydantic_default
 from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
 from llmcompiler.tools.generic.action_output import ChartType, Chart, dag_flow_params_pack, DAGFlowKwargs, \
     action_output_charts_df_parse, Source
@@ -53,9 +53,8 @@ class FundBasicV2(BaseTool, DAGFlowParams):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @tool_set_default_value()
-    @tool_kwargs_filter_placeholder
-    @tool_kwargs_clear
+    @tool_set_pydantic_default
+    @tool_kwargs_filter
     def _run(self, **kwargs) -> ActionOutput:
         """Use the tool."""
         try:

@@ -41,5 +41,11 @@ def kwargs_filter_placeholder(kwargs, pattern_str: str = None):
     return {k: v for k, v in kwargs.items() if not contains_placeholder(v, pattern_str)}
 
 
+def kwargs_filter(kwargs, invalid_value: List = None, pattern_str: str = None):
+    kwargs = kwargs_clear(kwargs, invalid_value)
+    kwargs = kwargs_filter_placeholder(kwargs, pattern_str)
+    return kwargs
+
+
 if __name__ == '__main__':
     print(contains_placeholder("${1}.name"))

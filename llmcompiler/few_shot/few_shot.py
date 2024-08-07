@@ -4,83 +4,88 @@
 @Desc    : LLMCompiler
 @Time    : 2024-08-02 09:30:49
 """
-import os
 from abc import ABC, abstractmethod
-from typing import List
 
 from pydantic import BaseModel, Field
 
 from llmcompiler.few_shot.example import pack_exampl_variables
-from llmcompiler.result.chat import generate_md5
 from llmcompiler.utils.date.date import formatted_dt_now
 
 
-class Result(BaseModel):
-    total: str = Field(description="本次搜索相关总数，大于10000时显示`大于10000`")
-    count: int = Field(description="当前结果集中包含的总量")
-    data: list[dict] = Field(description="结果列表")
-
-
 class BaseFewShot(ABC):
-    """The base rewrite interface."""
-
-    def __init__(self, cfi: str, type: str, limit: int = 200):
-        """Few-shot,cfi/type/limit"""
-        self.cfi = cfi
-        self.type = type
-        self.limit = limit
+    """The base Few-shot interface."""
 
     @abstractmethod
-    def add(self, md5: str, question: str, cfi: list[str], type: str, update_time: str):
+    def add(self, **kwargs):
         """pass"""
 
     @abstractmethod
-    def get(self, question: str) -> Result:
+    def get(self, **kwargs):
         """pass"""
 
     @abstractmethod
-    def delete(self, md5: str):
+    def delete(self, **kwargs):
         """pass"""
 
-    @abstractmethod
-    def delete_by_cfi(self, cfi: List[str]):
-        """pass"""
+
+class Result(BaseModel):
+    total: str = Field(
+        description="Total number of relevant results for this search; displays 'greater than 10000' if more than 10000")
+    count: int = Field(description="Total number included in the current result set")
+    data: list[dict] = Field(description="List of results")
 
 
 class DefaultBaseFewShot(BaseFewShot):
 
     def __init__(self):
-        super().__init__("default", "default", 10)
+        self.storage = {}
 
-    def add(self, md5: str, question: str, cfi: list[str], type: str, update_time: str):
-        pass
+    def add(self, id: str, question: str, update_time: str):
+        self.storage[id] = {"question": question, "update_time": update_time}
 
-    def get(self, question: str) -> Result:
-        pass
+    def _calculate_match_score(self, query: str, target: str) -> float:
+        # Calculate character-based match score
+        matches = sum(target.count(char) for char in query)
+        return matches / len(target) if target else 0
 
-    def delete(self, md5: str):
-        pass
+    def get(self, question: str, topn: int = 5) -> Result:
+        # Get all questions
+        all_questions = [(k, v['question']) for k, v in self.storage.items()]
 
-    def delete_by_cfi(self, cfi: List[str]):
-        pass
+        # Calculate match scores
+        scores = [(k, v, self._calculate_match_score(question, v)) for k, v in all_questions]
+
+        # Sort by score in descending order and get topn
+        top_matches = sorted(scores, key=lambda x: x[2], reverse=True)[:topn]
+
+        # Find matched items
+        matched_items = [self.storage[k] for k, v, score in top_matches]
+
+        return Result(
+            total=str(len(matched_items)),
+            count=len(matched_items),
+            data=matched_items
+        )
+
+    def delete(self, id: str):
+        if id in self.storage:
+            del self.storage[id]
 
 
 if __name__ == '__main__':
-    intent_recognition = DefaultBaseFewShot()
+    few_shot = DefaultBaseFewShot()
     # ========================添加样例========================
     examples = pack_exampl_variables()
     for example in examples:
-        intent_recognition.add(
-            md5=generate_md5("".join([example['var'], os.getenv("FEW_SHOT_TYPE"), os.getenv("FEW_SHOT_CFI")])),
+        few_shot.add(
+            id=example['var'],
             question=example['value'],
-            cfi=[os.getenv("FEW_SHOT_CFI")],
-            type=os.getenv("FEW_SHOT_TYPE"),
             update_time=formatted_dt_now()
         )
 
     # ========================查询样例========================
-    result = intent_recognition.get(question="易方达")
+    result = few_shot.get(question="查找货币类基金")
     print(result)
 
     # ========================删除样例========================
-    # intent_recognition.delete(md5="sadojwqeuncuwo")
+    # intent_recognition.delete(id="sadojwqeuncuwo")
