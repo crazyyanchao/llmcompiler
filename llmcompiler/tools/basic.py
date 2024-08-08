@@ -22,7 +22,7 @@ class Tools(ABC):
     @staticmethod
     def dynamic_load_tools() -> List[BaseTool]:
         define_tools = []
-        file_paths = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))]
+        file_paths = [os.getcwd()]
         for file_path in file_paths:
             tool_list = Tools.detect_tools_in_path(file_path)
             define_tools.extend(tool_list)
