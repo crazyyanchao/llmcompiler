@@ -4,9 +4,12 @@
 @Desc    : LLMCompiler
 @Time    : 2024-08-02 09:30:49
 """
+import importlib
 import json
+import os
 import time
 import logging
+from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Tuple
 
@@ -28,6 +31,59 @@ from llmcompiler.tools.generic.render_description import TOOL_DESC_JOIN_EXAMPLES
 from llmcompiler.tools.prompt import FILTER_TOOLS_PROMPT
 from llmcompiler.utils.thread.pool_executor import max_worker
 
+logger = logging.getLogger(__name__)
+
+
+class Tools(ABC):
+    """
+    Load Tools.
+    """
+
+    @staticmethod
+    def dynamic_load_tools() -> List[BaseTool]:
+        define_tools = []
+        file_paths = [os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))]
+        for file_path in file_paths:
+            tool_list = Tools.detect_tools_in_path(file_path)
+            define_tools.extend(tool_list)
+        return define_tools
+
+    @staticmethod
+    def load_tools(file_paths: List[str]) -> List[BaseTool]:
+        define_tools = []
+        for file_path in file_paths:
+            tool_list = Tools.detect_tools_in_path(file_path)
+            define_tools.extend(tool_list)
+        return define_tools
+
+    @staticmethod
+    def detect_tools_in_path(file_path: str) -> List[BaseTool]:
+        define_tools = []
+        for root, _, files in os.walk(file_path):
+            for file_name in files:
+                if file_name.endswith('.py') and not file_name.startswith('__'):
+                    module_name = file_name[:-3]
+                    module_path = os.path.join(root, file_name)
+                    try:
+                        spec = importlib.util.spec_from_file_location(module_name, module_path)
+                        if spec is None or spec.loader is None:
+                            logger.warning(f"Failed to load spec for module {module_name} at {module_path}")
+                            continue
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+
+                        for attribute_name in dir(module):
+                            attribute = getattr(module, attribute_name)
+                            if (isinstance(attribute, type) and
+                                issubclass(attribute,
+                                           BaseTool) and attribute != BaseTool) and attribute() not in define_tools:
+                                define_tools.append(attribute())
+                    except Exception as e:
+                        logger.error(f"Error loading module {module_name} at {module_path}: {e}")
+
+        logger.info(f"A total of {len(define_tools)} Tools are configured.")
+        return define_tools
+
 
 class ToolEmbedding(BaseModel):
     tool: BaseTool = Field(description="Tool")
@@ -36,7 +92,7 @@ class ToolEmbedding(BaseModel):
     dag_flow: bool = Field(default=False, description="当前Tool是否定义了依赖参数")
 
 
-class DefineTools:
+class DefineTools(Tools):
     """
     自定义工具列表
     """
@@ -54,7 +110,7 @@ class DefineTools:
             fund_portfolio,
             stock_basic
         ]
-        logging.info(f"A total of {len(define_tools)} Tools are configured.")
+        logger.info(f"A total of {len(define_tools)} Tools are configured.")
         return define_tools
 
     def filter(self, top_k: int = 15, top_k_percent: float = None,
@@ -87,7 +143,7 @@ class DefineTools:
                 top_k_tools = [x.tool for x in top_k_tools_emb]
         else:
             top_k_tools = [x.tool for x in top_k_tools_emb]
-        logging.info("\n".join(
+        logger.info("\n".join(
             [f"The Result Filtered From {len(self.tools())} Tools:"] +
             [f"{index + 1}. {tool.name}" for index, tool in enumerate(top_k_tools)] + ["---"]))
         return top_k_tools
@@ -110,7 +166,7 @@ class DefineTools:
         """计算Top-K数量"""
         if top_k_percent is not None:
             if top_k_percent > 1:
-                logging.error("Top-K percent must be less than or equal to 1.")
+                logger.error("Top-K percent must be less than or equal to 1.")
             else:
                 top_k = round(tool_size * top_k_percent)
         return top_k
@@ -167,7 +223,7 @@ class DefineTools:
     def token(self) -> int:
         """估算Tools占有的Token数量"""
         token = openai_gpt_model_token(self.tools_desc()[0], 'gpt-4')[0]
-        logging.warning(f"Tokens: {token}")
+        logger.warning(f"Tokens: {token}")
         return token
 
 
