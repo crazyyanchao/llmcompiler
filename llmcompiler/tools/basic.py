@@ -5,6 +5,7 @@
 @Time    : 2024-08-08 16:56:56
 """
 import importlib
+import inspect
 import os
 import logging
 from abc import ABC
@@ -95,11 +96,13 @@ class Tools(ABC):
 
                         for attribute_name in dir(module):
                             attribute = getattr(module, attribute_name)
-                            if (isinstance(attribute, type) and
-                                    (issubclass(attribute, BaseTool) or issubclass(attribute, CompilerBaseTool)) and
-                                    attribute not in (BaseTool, CompilerBaseTool) and
-                                    attribute() not in define_tools):
-                                define_tools.append(attribute())
+                            if (inspect.isclass(attribute) and
+                                    (issubclass(attribute, BaseTool) or issubclass(attribute, CompilerBaseTool))):
+                                try:
+                                    if attribute() not in define_tools:
+                                        define_tools.append(attribute())
+                                except:
+                                    pass
                     except Exception as e:
                         logger.error(f"Error loading module {module_name} at {module_path}: {e}")
 
