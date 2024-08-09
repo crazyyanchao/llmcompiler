@@ -8,10 +8,51 @@ import importlib
 import os
 import logging
 from abc import ABC
-from typing import List
+from typing import List, Type
+
+import pandas as pd
 from langchain.tools import BaseTool
+from pydantic import BaseModel
+
+from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
+from llmcompiler.tools.generic.action_output import DAGFlow, dag_flow_params_pack, DAGFlowKwargs
 
 logger = logging.getLogger(__name__)
+
+
+class CompilerBaseTool(BaseTool, DAGFlowParams, ABC):
+
+    def flow(self, df: pd.DataFrame, cls: Type[BaseModel], *args) -> DAGFlow:
+        _dag_fields = self._args_list(args)
+        _params_ = {}
+        for field in _dag_fields:
+            if field in df.columns:
+                _params_[field] = df[field].tolist()
+        dag_kwargs = dag_flow_params_pack(self.name, _params_, self._dag_flow_paras(_dag_fields, cls))
+        return dag_kwargs
+
+    def _dag_flow_paras(self, _dag_fields: List[str], cls: Type[BaseModel]) -> List[DAGFlowKwargs]:
+        flows = []
+        for key, value in cls.model_fields.items():
+            if key in _dag_fields:
+                flows.append(DAGFlowKwargs(field_en=key, field_cn='', description=value.description))
+        return flows
+
+    def _args_list(self, *args):
+        args = args[0]
+        if len(args) == 1:
+            arg = args[0]
+            if isinstance(arg, str):
+                if ',' in arg:
+                    return arg.split(',')
+                else:
+                    return [arg]
+            elif isinstance(arg, list):
+                return arg
+        elif len(args) > 1:
+            return list(args)
+        else:
+            return []
 
 
 class Tools(ABC):
@@ -55,8 +96,9 @@ class Tools(ABC):
                         for attribute_name in dir(module):
                             attribute = getattr(module, attribute_name)
                             if (isinstance(attribute, type) and
-                                issubclass(attribute,
-                                           BaseTool) and attribute != BaseTool) and attribute() not in define_tools:
+                                    (issubclass(attribute, BaseTool) or issubclass(attribute, CompilerBaseTool)) and
+                                    attribute not in (BaseTool, CompilerBaseTool) and
+                                    attribute() not in define_tools):
                                 define_tools.append(attribute())
                     except Exception as e:
                         logger.error(f"Error loading module {module_name} at {module_path}: {e}")

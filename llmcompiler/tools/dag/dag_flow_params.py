@@ -13,7 +13,7 @@ class DAGFlowParams(ABC):
     """DAG参数依赖接口"""
 
     @abstractmethod
-    def dag_flow_paras(self) -> List[DAGFlowKwargs]:
+    def dag_flow_paras(self, **kwargs) -> List[DAGFlowKwargs]:
         """
         获取Tool中可能被其它Tools依赖的参数字段信息
         """
