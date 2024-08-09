@@ -29,10 +29,10 @@ class CompilerBaseTool(BaseTool, DAGFlowParams, ABC):
         for field in _dag_fields:
             if field in df.columns:
                 _params_[field] = df[field].tolist()
-        dag_kwargs = dag_flow_params_pack(self.name, _params_, self._dag_flow_paras(_dag_fields, cls))
+        dag_kwargs = dag_flow_params_pack(self.name, _params_, self.dag_flow_paras(_dag_fields, cls))
         return dag_kwargs
 
-    def _dag_flow_paras(self, _dag_fields: List[str], cls: Type[BaseModel]) -> List[DAGFlowKwargs]:
+    def dag_flow_paras(self, _dag_fields: List[str], cls: Type[BaseModel]) -> List[DAGFlowKwargs]:
         flows = []
         for key, value in cls.model_fields.items():
             if key in _dag_fields:
