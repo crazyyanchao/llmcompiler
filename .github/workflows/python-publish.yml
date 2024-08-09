@@ -1,11 +1,11 @@
 name: Publish Python package to PyPI
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
-    branches:
-      - main
+#  push:
+#    tags:
+#      - 'v*.*.*'
+#    branches:
+#      - main
   release:
     types: [ published ]
   workflow_dispatch:
