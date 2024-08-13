@@ -56,6 +56,10 @@ print(llm_compiler.runWithoutJoiner())
 # More ways to use it can be discussed in the issue, and I will continue to improve the documentation in the future.
 ```
 
+## Case
+
+[Example of Performing Complex Mathematical Calculations](docs/dag-demo.md)
+
 ## Reference Linking
 
 - [Paper: An LLM Compiler for Parallel Function Calling](https://arxiv.org/abs/2312.04511)
