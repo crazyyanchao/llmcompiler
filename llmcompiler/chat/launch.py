@@ -38,7 +38,7 @@ class Launch(ABC):
                  joiner: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  re_planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  multi_dialogue: bool = False, debug_prompt: bool = False,
-                 few_shot: BaseFewShot = None):
+                 few_shot: BaseFewShot = None, print_dag: bool = True):
         """
         初始化必要参数。
         :param chat: 请求对象
@@ -67,7 +67,7 @@ class Launch(ABC):
 
         self.rewrite = Rewrite(llm=llm, tools=tools, few_shot=few_shot)
         if self.swi_planer:
-            self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer)
+            self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer, print_dag)
         else:
             raise Exception("Planer is not initialized!")
 

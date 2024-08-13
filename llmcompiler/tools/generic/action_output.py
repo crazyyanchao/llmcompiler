@@ -62,13 +62,6 @@ class DAGFlow(BaseModel):
     desc: List[DAGFlowKwargs] = Field(default=[], description="字段相关信息")
 
 
-def dag_flow_params_pack(tool_name: str, kwargs: Dict[str, Any], desc: List[DAGFlowKwargs]) -> DAGFlow:
-    for de in desc:
-        if de.field_en not in kwargs:
-            raise ValueError("Missing parameters required by Tools-DAG-Flow.")
-    return DAGFlow(tool_name=tool_name, kwargs=kwargs, desc=desc)
-
-
 class ActionOutput(BaseModel):
     """
     自定义ActionOutput对象便于在AgentExecutorIterator对Steps进行更加灵活的控制

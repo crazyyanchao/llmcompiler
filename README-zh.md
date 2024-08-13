@@ -28,16 +28,17 @@ pip install llmcompiler
 
 ```py
 from llmcompiler.result.chat import ChatRequest
-from llmcompiler.tools.tools import DefineTools
+from llmcompiler.tools.tools import Tools
 from langchain_openai.chat_models.base import ChatOpenAI
 from llmcompiler.chat.run import RunLLMCompiler
 
 chat = ChatRequest(message="<YOUR_MESSAGE>")
 
-# tools 是基于 Langchain BaseTool 的列表。
-# 默认配置仅用于演示，建议继承BaseTool来实现Tool，这样可以更好地控制一些细节。
-# 对于多参数依赖，可以继承 DAGFlowParams，实现参考为`llmcompiler/tools/basetool/fund_basic.py`。 
-tools = DefineTools().tools()
+# `tools`是基于Langchain BaseTool的列表，`Tools.load_tools`可以从指定的目录或者`.py`中自动加载Tools.
+# 默认配置仅用于演示，建议继承`BaseTool`或`CompilerBaseTool`来实现Tool，这样可以更好地控制一些细节。
+# 不需要指定参数依赖，可以继承`BaseTool`来实现Tool，实现参考为`llmcompiler/tools/basetool/fund_basic_v1.py`。
+# 需要指定参数依赖，可以继承 `CompilerBaseTool`，实现参考为`llmcompiler/tools/math/math_tools.py,llmcompiler/tools/basetool/fund_basic_v2.py`。 
+tools = Tools.load_tools("../llmcompiler/tools/math")
 
 # 支持BaseLanguageModel的实现类。
 llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)

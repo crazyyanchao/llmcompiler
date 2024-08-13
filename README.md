@@ -31,16 +31,17 @@ pip install llmcompiler
 
 ```py
 from llmcompiler.result.chat import ChatRequest
-from llmcompiler.tools.tools import DefineTools
+from llmcompiler.tools.tools import Tools
 from langchain_openai.chat_models.base import ChatOpenAI
 from llmcompiler.chat.run import RunLLMCompiler
 
 chat = ChatRequest(message="<YOUR_MESSAGE>")
 
-# Langchain BaseTool List.
-# The default configuration is only for demonstration, and it is recommended to inherit BaseTool to implement Tool, so that you can better control some details. 
-# For multi-parameter dependencies, DAGFlowParams can be inherited, and the implementation reference is 'llmcompiler/tools/basetool/fund_basic.py'.
-tools = DefineTools().tools()
+# `tools` is a list based on Langchain BaseTool, `Tools.load_tools` can automatically load Tools from specified directories or `.py` files.
+# The default configuration is only for demonstration purposes, it is recommended to inherit `BaseTool` or `CompilerBaseTool` to implement Tool, which can better control some details.
+# No parameter dependencies are required, you can inherit `BaseTool` to implement Tool, with the implementation reference being `llmcompiler/tools/basetool/fund_basic_v1.py`.
+# Parameter dependencies are required, you can inherit `CompilerBaseTool`, with the implementation references being `llmcompiler/tools/math/math_tools.py, llmcompiler/tools/basetool/fund_basic_v2.py`.
+tools = Tools.load_tools("../llmcompiler/tools/math")
 
 # The implementation class of BaseLanguageModel is supported.
 llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)

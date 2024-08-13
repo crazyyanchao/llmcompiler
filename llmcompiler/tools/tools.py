@@ -20,8 +20,7 @@ from pydantic import Field, BaseModel
 from llmcompiler.graph.token_calculate import openai_gpt_model_token
 from llmcompiler.custom_llms.claude import Claude3LLM
 from llmcompiler.result.chat import ChatRequest
-from llmcompiler.tools.basetool.fund_basic import FundBasic
-from llmcompiler.tools.basetool.fund_basic_v2 import FundBasicV2
+from llmcompiler.tools.basetool.fund_basic_v1 import FundBasicV1
 from llmcompiler.tools.basetool.tool_decorator import stock_basic, fund_portfolio
 from llmcompiler.tools.basic import Tools
 from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
@@ -53,7 +52,7 @@ class DefineTools(Tools):
         """可使用的Tools列表"""
         define_tools = [
             # FundBasic(),
-            FundBasicV2(),
+            FundBasicV1(),
             fund_portfolio,
             stock_basic
         ]

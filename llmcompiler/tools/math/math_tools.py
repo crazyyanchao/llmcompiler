@@ -6,18 +6,34 @@
 """
 import math
 import re
-from typing import List, Optional
+import logging
+from typing import List, Optional, Type, Union
 
 import numexpr
 from langchain.chains.openai_functions import create_structured_output_runnable
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import Field, BaseModel
+from langchain_core.pydantic_v1 import BaseModel as LangBaseModel
+from langchain_core.pydantic_v1 import Field as LangField
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import StructuredTool
+from langchain_openai import ChatOpenAI
 
-from llmcompiler.custom_llms.openai_compiler import OpenaicompilerLLM
+from llmcompiler.tools.basic import CompilerBaseTool
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS
+from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError
+
+logger = logging.getLogger(__name__)
+
+# try:
+#     from dotenv import load_dotenv
+#
+#     load_dotenv()
+# except ImportError:
+#     raise ImportError(
+#         "The 'python-dotenv' package is required to use this class. Please install it using 'pip install python-dotenv'.")
 
 _MATH_DESCRIPTION = (
     "math(problem: str, context: Optional[list[str]]) -> float:\n"
@@ -79,15 +95,15 @@ _ADDITIONAL_CONTEXT_PROMPT = """The following additional context is provided fro
 You must extract the relevant numbers and directly put them in code."""
 
 
-class ExecuteCode(BaseModel):
+class ExecuteCode(LangBaseModel):
     """The input to the numexpr.evaluate() function."""
 
-    reasoning: str = Field(
+    reasoning: str = LangField(
         ...,
         description="The reasoning behind the code expression, including how context is included, if applicable.",
     )
 
-    code: str = Field(
+    code: str = LangField(
         ...,
         description="The simple code expression to execute by numexpr.evaluate().",
     )
@@ -149,9 +165,67 @@ def get_math_tool(llm: BaseLanguageModel):
     )
 
 
+# def get_math_tool_define() -> StructuredTool:
+#     return get_math_tool(ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3))
+
+
+PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", _SYSTEM_PROMPT),
+        ("user", "{problem}"),
+        MessagesPlaceholder(variable_name="context", optional=True),
+    ]
+)
+EXTRACTOR = create_structured_output_runnable(ExecuteCode,
+                                              ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3),
+                                              PROMPT, enforce_function_usage=False, mode="openai-tools")
+
+
+class InputSchema(BaseModel):
+    problem: str = Field(description="简单的数学问题", json_schema_extra=DISABLE_RESOLVED_ARGS)
+    context: Optional[List] = Field(default=None, description="提供额外的上下文信息，帮助解决数学问题")
+
+
+class OutputSchema(BaseModel):
+    value: Union[int, float] = Field(default=None, description="计算结果")
+
+
+class Math(CompilerBaseTool):
+    name = "math"
+    description = _MATH_DESCRIPTION
+    args_schema: Type[BaseModel] = InputSchema
+
+    output_model: Type[BaseModel] = OutputSchema
+    dag_flow_kwargs: List[str] = ['value']
+
+    def _run(self, problem: str, context: Optional[List] = None) -> ActionOutput:
+        """Use the tool."""
+        chain_input = {"problem": problem}
+        if context:
+            f_string = "\n"
+            context_str = f_string.join([
+                f'The output of the {index + 1} calculation: {f_string.join([str(xt) for xt in cxt]) if isinstance(cxt, list) else str(cxt)}'
+                for index, cxt in enumerate(context)
+            ])
+            if context_str.strip():
+                context_str = _ADDITIONAL_CONTEXT_PROMPT.format(
+                    context=context_str.strip()
+                )
+                chain_input["context"] = [SystemMessage(content=context_str)]
+        code_model = EXTRACTOR.invoke(chain_input)
+        try:
+            value = _evaluate_expression(code_model.code)
+            output = OutputSchema(value=value)
+            return ActionOutput(any=output, dag_kwargs=self.flow(output))
+        except Exception as e:
+            logger.error(str(e))
+        return ActionOutputError()
+
+
 if __name__ == '__main__':
-    gpt4o: OpenaicompilerLLM = \
-        OpenaicompilerLLM(temperature=0, type="compiler-gpt-4o", model="gpt-4o", model_name="compiler-gpt-4o",
-                        max_retries=3)
-    get_math_tool(gpt4o).invoke(
-        input={"problem": "What's ((3*(4+5)/0.5)+3245) + 8? What's 32/4.23? What's the sum of those two values?"})
+    info = Math()
+    print(info.name)
+    print(info.description)
+    print(info.args)
+    print(info.dag_flow_paras())
+    print(info._run(problem='sum of $1 and $2', context=[[3307], [7.565011820330969]]))

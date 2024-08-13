@@ -21,6 +21,7 @@ from langchain_core.tools import tool, StructuredTool
 
 try:
     import tushare as ts
+
     # from dotenv import load_dotenv
     #
     # load_dotenv()
@@ -64,6 +65,6 @@ def stock_basic_2(name: str) -> List[str]:
 def wd_a_desc_2_tool() -> StructuredTool:
     return StructuredTool.from_function(
         func=stock_basic_2,
-        name="获取中国股票基本资料",
+        name="wd_a_desc_2_tool",
         description="使用公司简称获取A股基本资料信息，输出股票代码、上市日期等信息",
     )

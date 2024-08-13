@@ -13,6 +13,7 @@ from typing import Sequence
 from concurrent.futures import ThreadPoolExecutor, wait
 
 from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables.graph import Graph, Node, Edge
 from langchain_core.tools import BaseTool
 from langchain_core.messages import (
     BaseMessage,
@@ -29,6 +30,7 @@ from langchain_core.runnables import (
 
 from llmcompiler.graph.prompt import TOOL_MESSAGE_TEMPLATE
 from llmcompiler.graph.tool_message import ToolMessage
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS
 from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError, Chart, DAGFlow, BaseChart
 from llmcompiler.utils.string.string_sim import word_similarity_score
 from llmcompiler.graph.token_calculate import SwitchLLM
@@ -49,6 +51,7 @@ class SchedulerInput(TypedDict):
     charts: List[Chart]
     tasks_temporary_save: List[Task]
     observations: Dict
+    print_dag: bool
 
 
 def _execute_task(task, observations, config, charts: List[Chart], tasks_temporary_save: List[Task]):
@@ -143,12 +146,28 @@ def _resolve_arg(arg: Union[str, Any], observations: Dict[int, Any], cur_task: T
     3. 解析参数
     """
     # For dependencies on other tasks
+    if not _execute_parameter_parse(cur_task, field):
+        return str(arg)
     if isinstance(arg, str):
         return _resolve_arg_str(arg, observations, cur_task, tasks_temporary_save, field)
     elif isinstance(arg, list):
         return [_resolve_arg_str(a, observations, cur_task, tasks_temporary_save, field) for a in arg]
     else:
         return str(arg)
+
+
+def _execute_parameter_parse(cur_task: Task, field: str) -> bool:
+    """
+    是否对当前字段执行参数解析，参数解析的含义为将`${1}.code、$1`等类似的参数解析为真实参数值
+    """
+    dat = cur_task['tool'].args_schema
+    for key, value in dat.model_fields.items():
+        json_schema_extra = getattr(value, 'json_schema_extra', {})
+        if key == field and json_schema_extra:
+            resolved_args = next(iter(DISABLE_RESOLVED_ARGS.keys()), None)
+            if resolved_args in json_schema_extra:
+                return json_schema_extra[resolved_args]
+    return True
 
 
 def _resolve_arg_str(arg: str, observations: Dict[int, Any], cur_task: Task, tasks_temporary_save: List[Task],
@@ -257,7 +276,7 @@ def _tools_dag_flow_value(tool_observation: DAGFlow, idx: int, tasks_temporary_s
         task: Task = [tk for tk in tasks_temporary_save if tk["idx"] == idx and tk["tool"] != "join"][0]
         if task is not None:
             value = task["args"].get(cur_field, arg)
-            if value != arg and '$' not in value:
+            if value != arg and '$' not in str(value):
                 return value
     # 4. ==============猜字段：匹配不到字段则猜字段，基于字段匹配度从上一个Task输出中猜字段==============
     return _resolve_arg_parse_random(cur_field, tool_observation)
@@ -395,7 +414,52 @@ def schedule_tasks(scheduler_input: SchedulerInput) -> List[ToolMessage]:
                                              content=TOOL_RESPONSE_PROMPT.format(
                                                  response=modify_action_output(obs), input=""),
                                              additional_kwargs={"idx": k, 'args': task_args}))
+    if scheduler_input['print_dag']:
+        _print_dag(tasks_temporary_save)
     return tool_messages
+
+
+def _print_dag(tasks_temporary_save: List[Task]):
+    """打印DAG"""
+    print("We can convert a graph class into Mermaid syntax.")
+    print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
+    nodes: Dict[str, Node] = {}
+    edges: List[Edge] = []
+
+    start = Node(id='__start__', name='__start__', data=None, metadata=None)
+    end = Node(id='__end__', name='__end__', data=None, metadata=None)
+    nodes['__start__'] = start
+    nodes['__end__'] = end
+    for task in tasks_temporary_save:
+        node_id = str(task['idx'])
+        node_name = _get_task_name(task)
+        nodes[node_id] = Node(id=node_id, name=node_name, data=None, metadata=None)
+
+    for task in tasks_temporary_save:
+        for dependency in task['dependencies']:
+            edges.append(Edge(source=str(dependency), target=str(task['idx'])))
+
+    # 没有依赖的节点链接到`start`，最后一个点链接到`end`
+    for task in tasks_temporary_save:
+        if not task['dependencies']:
+            edges.append(Edge(source='__start__', target=str(task['idx'])))
+
+    tasks_temporary_save.sort(key=lambda task: int(task['idx']), reverse=True)
+    edges.append(Edge(source=str(tasks_temporary_save[0]['idx']), target='__end__'))
+
+    dag = Graph(nodes, edges)
+    print(dag.draw_mermaid())
+
+
+def _get_task_name(task: Task) -> str:
+    """获取Task名称"""
+    tool_to_use = task["tool"]
+    if isinstance(tool_to_use, str):
+        return f'Task {str(task["idx"])} {tool_to_use}'
+    else:
+        # args = ','.join([f'{key}={value}' for key, value in task['args'].items()])
+        # return f'{tool_to_use.name}:{args}'
+        return f'Task {str(task["idx"])} {tool_to_use.name}'
 
 
 def dict_to_query_string(d: Union[Dict, Any]) -> str:
@@ -454,13 +518,14 @@ class PlanAndSchedule:
     """
 
     def __init__(self, llm: Union[SwitchLLM, List[SwitchLLM]], tools: Sequence[BaseTool],
-                 re_llm: Union[SwitchLLM, List[SwitchLLM]] = None):
+                 re_llm: Union[SwitchLLM, List[SwitchLLM]] = None, print_dag: bool = True):
         self.llm = llm
         self.re_llm = re_llm
         self.tools = tools
         self.charts = []
         self.tasks_temporary_save = []
         self.observations = {}  # Save all previous tool responses
+        self.print_dag = print_dag
 
     # @as_runnable
     def init(self, messages: List[BaseMessage], config):
@@ -474,7 +539,8 @@ class PlanAndSchedule:
 
         scheduled_tasks = schedule_tasks.invoke(
             SchedulerInput(messages=messages, tasks=tasks, charts=self.charts,
-                           tasks_temporary_save=self.tasks_temporary_save, observations=self.observations),
+                           tasks_temporary_save=self.tasks_temporary_save, observations=self.observations,
+                           print_dag=self.print_dag),
             config,
         )
         return scheduled_tasks
