@@ -31,7 +31,7 @@ pip install llmcompiler
 
 ```py
 from llmcompiler.result.chat import ChatRequest
-from llmcompiler.tools.tools import Tools
+from llmcompiler.tools.basic import Tools
 from langchain_openai.chat_models.base import ChatOpenAI
 from llmcompiler.chat.run import RunLLMCompiler
 

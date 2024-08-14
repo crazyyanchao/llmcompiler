@@ -4,7 +4,7 @@
 can be fully visualized by setting the `print_dag` parameter.
 
 ## Code
-```python
+```py
 from llmcompiler.tools.basic import Tools
 from llmcompiler.result.chat import ChatRequest
 from langchain_openai.chat_models.base import ChatOpenAI
