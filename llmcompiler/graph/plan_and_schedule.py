@@ -9,7 +9,7 @@ import re
 import time
 import logging
 import itertools
-from typing import Sequence
+from typing import Sequence, Tuple
 from concurrent.futures import ThreadPoolExecutor, wait
 
 from langchain_core.prompts import PromptTemplate
@@ -30,7 +30,8 @@ from langchain_core.runnables import (
 
 from llmcompiler.graph.prompt import TOOL_MESSAGE_TEMPLATE
 from llmcompiler.graph.tool_message import ToolMessage
-from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS, PARTIAL_RESOLVED_ARGS_PARSE
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS, PARTIAL_RESOLVED_ARGS_PARSE, \
+    RESOLVED_RAGS_DEPENDENCY_VAR
 from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError, Chart, DAGFlow, BaseChart
 from llmcompiler.utils.string.string_sim import word_similarity_score
 from llmcompiler.graph.token_calculate import SwitchLLM
@@ -54,6 +55,17 @@ class SchedulerInput(TypedDict):
     print_dag: bool
 
 
+class ResolvedArgs(TypedDict):
+    """`resolved_args` dependency"""
+    dep_task: Task
+    output: ActionOutput
+    field: str
+
+
+# RESOLVED_RAGS_DEPENDENCY KEY为字段名，VALUE为依赖的信息
+RESOLVED_RAGS_DEPENDENCY = {}
+
+
 def _execute_task(task, observations, config, charts: List[Chart], tasks_temporary_save: List[Task]):
     tool_to_use = task["tool"]
     if isinstance(tool_to_use, str):
@@ -61,6 +73,11 @@ def _execute_task(task, observations, config, charts: List[Chart], tasks_tempora
         return tool_to_use
     args = task["args"]
     try:
+
+        # 每个TOOL的解析重置该变量
+        global RESOLVED_RAGS_DEPENDENCY
+        RESOLVED_RAGS_DEPENDENCY.clear()
+
         if isinstance(args, str):
             resolved_args = _resolve_arg(args, observations, task, tasks_temporary_save)
         elif isinstance(args, dict):
@@ -78,7 +95,9 @@ def _execute_task(task, observations, config, charts: List[Chart], tasks_tempora
     try:
         _print_task(task, resolved_args)
         # 判断父级TASK的输出，是否存在disable_row_call=true的参数，`__tasks__`
-        # TODO：每个参数值来自哪个Tool、哪个字段
+        # 每个参数值来自哪个Tool、哪个字段。如果依赖的TOOL的OUTPUTSCHEMA使用了`DISABLE_ROW_CALL`参数则将`RESOLVED_RAGS_DEPENDENCY`传递到下游
+        if RESOLVED_RAGS_DEPENDENCY:
+            tool_to_use.metadata = {RESOLVED_RAGS_DEPENDENCY_VAR: RESOLVED_RAGS_DEPENDENCY}
         action_output = tool_to_use.invoke(resolved_args, config)
         stream_output_chart(action_output, charts)
         return action_output
@@ -128,6 +147,11 @@ def stream_output_chart(action_output: Any, charts: List[Chart]):
             for chart in value:
                 if isinstance(chart, Chart):
                     stream_output_chart_ele(chart, charts)
+                # List[List[Chart]]
+                elif isinstance(chart, List):
+                    for ch in chart:
+                        if isinstance(ch, Chart):
+                            stream_output_chart_ele(ch, charts)
 
 
 def stream_output_chart_ele(value: Chart, charts: List[Chart]):
@@ -179,26 +203,84 @@ def _resolve_arg_str(arg: str, observations: Dict[int, Any], cur_task: Task, tas
     :param observations: 其它TASK返回结果
     :param field: 当前参数值对应的传入字段
     """
-    idx = _resolve_arg_str_idx(arg, cur_task, tasks_temporary_save)
-    if idx is None or idx == -1 or idx == arg:
-        return arg
+    if arg.count('${') > 1:
+        # 支持多参数-默认部分解析
+        idx_list = [int(idx) for idx in re.findall(r"\$\{?(\d+)\}?", arg)]
+        return _resolve_arg_str_parse_multi(idx_list, idx_list[0], arg, observations, cur_task, tasks_temporary_save,
+                                            cur_field)
     else:
-        value = observations.get(idx, arg)
-        if isinstance(value, ActionOutput) and _is_match_arg(arg):
-            # JOIN机制中依赖的Task已经执行了，observations已经获取了其它Tool运行的结果
-            value = _tools_dag_flow_value(value.dag_kwargs, idx, tasks_temporary_save, arg, cur_field)
-            if value is not None:
-                if _execute_partial_parse(cur_task, cur_field):
-                    val = re.sub(r'\$\{[^}]+\}\.[\w]+', str(value), arg)
-                    return val
-                else:
-                    return value
-    return arg
+        # 支持单参数、以及部分解析
+        idx = _resolve_arg_str_idx(arg, cur_task, tasks_temporary_save)
+        if idx is None or idx == -1 or idx == arg:
+            return arg
+        else:
+            return _resolve_arg_str_parse(idx, arg, observations, cur_task, tasks_temporary_save, cur_field)
+
+
+def _resolve_arg_str_parse(idx: int, arg: str, observations: Dict[int, Any], cur_task: Task,
+                           tasks_temporary_save: List[Task],
+                           cur_field: str = None):
+    """基于IDX解析参数，一个字段单个参数"""
+    value = observations.get(idx, arg)
+    if isinstance(value, ActionOutput) and _is_match_arg(arg):
+        # JOIN机制中依赖的Task已经执行了，observations已经获取了其它Tool运行的结果
+        value, field = _tools_dag_flow_value(value.dag_kwargs, idx, tasks_temporary_save, arg, cur_field)
+        if value is not None:
+            dep_task = [tk for tk in tasks_temporary_save if tk["idx"] == idx and tk["tool"] != "join"][0]
+            RESOLVED_RAGS_DEPENDENCY[cur_field] = ResolvedArgs(
+                dep_task=dep_task, output=observations.get(idx), field=field)
+            # 如果是部分解析则将字符串替换，仅替换一次（部分替换时会将字符串其余部分保留并只替换参数部分）
+            if _execute_partial_parse(cur_task, cur_field):
+                pattern = r'\$\{[^}]+\}(?:\.[\w]+)?'
+                val = re.sub(pattern, str(value), arg, count=1)
+                return val
+            else:
+                return value
+    else:
+        return arg
+
+
+def _resolve_arg_str_parse_multi(idx_list: List[int], idx: int, arg: str, observations: Dict[int, Any], cur_task: Task,
+                                 tasks_temporary_save: List[Task],
+                                 cur_field: str = None):
+    """基于IDX解析参数，一个字段多个参数
+    eg.`average of ${2}.stock_return ceshi ${4}.ff ${5}.stock_return ceshi` - 替换后保留原始字符串
+    """
+    value = observations.get(idx, arg)
+    if isinstance(value, ActionOutput) and _is_match_arg(arg):
+        # JOIN机制中依赖的Task已经执行了，observations已经获取了其它Tool运行的结果
+        value, field = _tools_dag_flow_value(value.dag_kwargs, idx, tasks_temporary_save, arg, cur_field)
+        if value is not None:
+            dep_task = [tk for tk in tasks_temporary_save if tk["idx"] == idx and tk["tool"] != "join"][0]
+
+            # 处理字段依赖的上游参数
+            if cur_field in RESOLVED_RAGS_DEPENDENCY:
+                existing_value = RESOLVED_RAGS_DEPENDENCY[cur_field]
+                if not isinstance(existing_value, list):
+                    RESOLVED_RAGS_DEPENDENCY[cur_field] = [existing_value]
+                RESOLVED_RAGS_DEPENDENCY[cur_field].append(
+                    ResolvedArgs(dep_task=dep_task, output=observations.get(idx), field=field))
+            else:
+                RESOLVED_RAGS_DEPENDENCY[cur_field] = ResolvedArgs(dep_task=dep_task, output=observations.get(idx),
+                                                                   field=field)
+
+            # 递归替换
+            pattern = r'\$\{[^}]+\}(?:\.[\w]+)?'
+            match = re.search(pattern, arg)
+            if not match:
+                return arg
+            else:
+                arg = re.sub(pattern, str(value), arg, count=1)
+                next_idx = idx_list[idx_list.index(idx) + 1]
+                return _resolve_arg_str_parse_multi(idx_list, next_idx, arg, observations, cur_task,
+                                                    tasks_temporary_save, cur_field)
+    else:
+        return arg
 
 
 def _execute_partial_parse(cur_task: Task, field: str) -> bool:
     """
-    是否对当前字段执行参数部分解析，部分参数解析的含义为将`'average of ${2}.stock_return'`等类似的参数解析为真实参数值（参数值使用括号包围），并保留原有字符串表示
+    是否对当前字段执行参数部分解析，部分参数解析的含义为将`'average of ${2}.stock_return'`等类似的参数解析为真实参数值，保留原有字符串表示
     """
     dat = cur_task['tool'].args_schema
     for key, value in dat.model_fields.items():
@@ -267,7 +349,7 @@ def _resolve_arg_str_idx_error(text: str) -> int:
 
 
 def _tools_dag_flow_value(tool_observation: DAGFlow, idx: int, tasks_temporary_save: List[Task], arg: str = None,
-                          cur_field: str = None) -> Any:
+                          cur_field: str = None) -> Tuple[Any, str]:
     """
     获取参数值
     :param tool_observation: 当前任务依赖的上一步Task结果
@@ -278,18 +360,19 @@ def _tools_dag_flow_value(tool_observation: DAGFlow, idx: int, tasks_temporary_s
     获取参数值方法：
     - 解析字段名获取【标准方法，准确率最高】
     - 猜字段如果出错则有可能触发Replan过程
+    :return 返回解析的参数值，以及被依赖的上游字段field
     """
     # 1. ==============匹配字段==============
     if '.' in arg:
         field = arg.split('.')[-1]
         value = tool_observation.kwargs.get(field, arg)
         if value != arg:
-            return value
+            return value, field
     # 2. ==============猜字段：从依赖任务的输出中猜，字段全匹配==============
     if '$' in arg:
         value = tool_observation.kwargs.get(cur_field, arg)
         if value != arg:
-            return value
+            return value, cur_field
     # 3. ==============猜字段：从依赖任务的输入猜字段，字段全匹配==============
     # 从依赖的Task中尝试直接获取相同的参数
     if tasks_temporary_save:
@@ -297,12 +380,12 @@ def _tools_dag_flow_value(tool_observation: DAGFlow, idx: int, tasks_temporary_s
         if task is not None:
             value = task["args"].get(cur_field, arg)
             if value != arg and '$' not in str(value):
-                return value
+                return value, cur_field
     # 4. ==============猜字段：匹配不到字段则猜字段，基于字段匹配度从上一个Task输出中猜字段==============
     return _resolve_arg_parse_random(cur_field, tool_observation)
 
 
-def _resolve_arg_parse_random(cur_field: str, tool_observation: DAGFlow) -> Any:
+def _resolve_arg_parse_random(cur_field: str, tool_observation: DAGFlow) -> Tuple[Any, str]:
     min_similarity = 100
     best_key = None
     data = tool_observation.kwargs
@@ -312,7 +395,7 @@ def _resolve_arg_parse_random(cur_field: str, tool_observation: DAGFlow) -> Any:
             min_similarity = similarity
             best_key = key
     if best_key:
-        return data.get(best_key)
+        return data.get(best_key), best_key
 
 
 @as_runnable

@@ -15,7 +15,8 @@ from llmcompiler.chat.run import RunLLMCompiler
 # tools = Tools.load_tools(["../llmcompiler/tools/basetool/stock_info_fake.py",
 #                           "../llmcompiler/tools/basetool/multi_param_dep_v2.py"])
 
-chat = ChatRequest(message="How has the return been for Tech stocks since their inception? Calculate the average return of tech stocks.")
+chat = ChatRequest(
+    message="How has the return been for Tech stocks since their inception? Calculate the average return of tech stocks.")
 tools = Tools.load_tools(["../llmcompiler/tools/math",
                           "../llmcompiler/tools/basetool/stock_info_fake.py",
                           "../llmcompiler/tools/basetool/multi_param_dep_v3.py"])
@@ -26,3 +27,5 @@ llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
 
 llm_compiler = RunLLMCompiler(chat, tools, llm)
 print(llm_compiler())
+
+# llm_compiler.runWithoutJoiner()

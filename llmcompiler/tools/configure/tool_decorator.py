@@ -11,8 +11,12 @@ import pandas as pd
 from typing import List, Optional, Any, Dict
 from langchain_core.tools import BaseTool
 
+from llmcompiler.graph.output_parser import Task
+from llmcompiler.graph.plan_and_schedule import ResolvedArgs
+from llmcompiler.tools.basic import CompilerBaseTool
 from llmcompiler.tools.configure.kwargs_clear import kwargs_filter_placeholder, kwargs_clear, kwargs_filter
-from llmcompiler.tools.dag.dag_flow_params import DISABLE_ROW_CALL
+from llmcompiler.tools.dag.dag_flow_params import RESOLVED_RAGS_DEPENDENCY_VAR, DISABLE_ROW_CALL
+# from llmcompiler.tools.dag.dag_flow_params import DISABLE_ROW_CALL
 from llmcompiler.tools.generic.action_output import ActionOutput, DAGFlow
 from llmcompiler.utils.thread.pool_executor import max_worker
 
@@ -100,38 +104,74 @@ def tool_set_pydantic_default(func):
     return wrapper
 
 
-def _disable_row_call_fields(tool: BaseTool) -> List[str]:
+# def _disable_row_call_fields(tool: BaseTool) -> List[str]:
+#     """
+#     disable_row_call参数为true的字段
+#     """
+#     fields = []
+#     dat = tool.args_schema
+#     for key, value in dat.model_fields.items():
+#         json_schema_extra = getattr(value, 'json_schema_extra', {})
+#         if json_schema_extra:
+#             disable_row_call = next(iter(DISABLE_ROW_CALL.keys()), None)
+#             if disable_row_call in json_schema_extra:
+#                 if json_schema_extra[disable_row_call]:
+#                     fields.append(key)
+#     return fields
+
+def kwargs_convert_df(dict: Dict, detect_disable_row_call: bool = False,
+                      fill_non_list_row: bool = False, fields: List[str] = None) -> pd.DataFrame:
     """
-    disable_row_call参数为true的字段
+    Convert dictionary to DataFrame.
+
+    eg.fill_non_list_row=True
+      code    date  value
+    0    1  2024.0  200.0
+    1    2     NaN    NaN
+    2    3     NaN    NaN
+    convert:
+      code  date  value
+    0    1  2024    200
+    1    2  2024    200
+    2    3  2024    200
+
+    eg.detect_disable_row_call=True
+      code    date  value
+    0    1  2024.0  200.0
+    1    2     NaN    NaN
+    2    3     NaN    NaN
+    convert:
+        code    date  value
+    0  [1, 2, 3]  2024.0  200.0
+
+    eg.detect_disable_row_call=True,fill_non_list_row=True
+      code    date  value
+    0    1  2024.0  200.0
+    1    2     NaN    NaN
+    2    3     NaN    NaN
+    convert:
+            code  date  value
+    0  [1, 2, 3]  2024    200
     """
-    fields = []
-    dat = tool.args_schema
-    for key, value in dat.model_fields.items():
-        json_schema_extra = getattr(value, 'json_schema_extra', {})
-        if json_schema_extra:
-            disable_row_call = next(iter(DISABLE_ROW_CALL.keys()), None)
-            if disable_row_call in json_schema_extra:
-                if json_schema_extra[disable_row_call]:
-                    fields.append(key)
-    return fields
+    data = dict.copy()
+    # Detect disable_row_call.
+    if fields and detect_disable_row_call:
+        for key, value in data.items():
+            if key in fields and isinstance(value, list):
+                data[key] = [value]
 
-
-# def kwargs_convert_df(raw_data: Dict, tool: BaseTool) -> pd.DataFrame:
-#     """Convert dictionary to DataFrame."""
-#     fields = _disable_row_call_fields(tool)
-#     data = {k: v for k, v in raw_data.items() if k not in fields}
-#     max_length = max(len(v) if isinstance(v, list) else 1 for v in data.values())
-#     for key in data:
-#         while len(data[key]) < max_length:
-#             data[key].append(np.nan)
-#
-#     df = pd.DataFrame(data)
-#     return df
-
-
-def kwargs_convert_df(data: Dict) -> pd.DataFrame:
-    """Convert dictionary to DataFrame."""
+    # Convert non-list values to lists
+    for key, value in data.items():
+        if not isinstance(value, list):
+            data[key] = [value]
     max_length = max(len(v) if isinstance(v, list) else 1 for v in data.values())
+
+    # Check single-value field.
+    if fill_non_list_row:
+        for key, value in data.items():
+            if len(value) == 1:
+                data[key] = value * max_length
+
     for key in data:
         while len(data[key]) < max_length:
             data[key].append(np.nan)
@@ -183,33 +223,65 @@ def merge_output(results: List[ActionOutput]) -> ActionOutput:
     )
 
 
-def tool_call_by_row_pass_parameters(func):
+def _has_disable_row_call_fields(dict: Dict[str, ResolvedArgs]) -> List[str]:
+    """Filter out the fields with the DISABLE_ROW_CALL=True parameter in the upstream OUTPUTSCHEMA."""
+    fields = []
+    for key_v, val in dict.items():
+        if not isinstance(val, List):
+            task: Task = val['dep_task']
+            tool: BaseTool = task['tool']
+            field = val['field']
+            if isinstance(tool, CompilerBaseTool):
+                for key, value in tool.output_model.model_fields.items():
+                    json_schema_extra = getattr(value, 'json_schema_extra', {})
+                    if json_schema_extra and key == field:
+                        disable_row_call = next(iter(DISABLE_ROW_CALL.keys()), None)
+                        if disable_row_call in json_schema_extra and json_schema_extra[disable_row_call]:
+                            fields.append(key_v)
+    return fields
+
+
+def tool_call_by_row_pass_parameters(fill_non_list_row: bool = False, detect_disable_row_call: bool = False):
     """
     Pass parameters by row and call TOOL.
     Pad the LIST parameter bitwise, then call TOOL multiple times.
     Ensure that INPUT BASEMODEL can be validated through the LIST parameter.
     For example, use Union[str, List] to add LIST validation for single value parameters.
     Ensure that each parameter value in kwargs has the same number of rows.
+    @detect_disable_row_call Ignore check if the parameter for detecting the upstream output results does not require checking the expanded columns (BASEMODEL USE DISABLE_ROW_CALL).
+    @fill_non_list_row Does the single-value parameter need to be automatically populated into the Table.
     """
 
-    def wrapper(*args, **kwargs):
-        print('Parsing and executing multirow parameters...')
-        # tool: BaseTool = args[0]
-        # df = kwargs_convert_df(kwargs, tool)
-        df = kwargs_convert_df(kwargs)
-        # Iterate through each row and print as a dictionary
-        params = []
-        for index, row in df.iterrows():
-            row_dict = row.to_dict()
-            params.append(row_dict)
-            print(row_dict)
-        with ThreadPoolExecutor(max_workers=max_worker()) as executor:
-            results = list(executor.map(lambda x: func(*args, **x), params))
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            print('Parsing and executing multirow parameters...')
+            tool: BaseTool = args[0]
+            tool_dep_var = tool.metadata.get(RESOLVED_RAGS_DEPENDENCY_VAR, None)
+            disable_row_call_fields = _has_disable_row_call_fields(tool_dep_var)
+            if tool_dep_var and disable_row_call_fields and detect_disable_row_call:
+                df = kwargs_convert_df(kwargs, True, fill_non_list_row, disable_row_call_fields)
+            else:
+                df = kwargs_convert_df(kwargs, fill_non_list_row=fill_non_list_row)
+            # Iterate through each row and print as a dictionary
+            params = []
+            for index, row in df.iterrows():
+                row_dict = row.to_dict()
+                params.append(row_dict)
+                print(row_dict)
+            with ThreadPoolExecutor(max_workers=max_worker()) as executor:
+                results = list(executor.map(lambda x: func(*args, **x), params))
 
-        output = merge_output(results)
-        return output
+            output = merge_output(results)
+            return output
 
-    return wrapper
+        return wrapper
+
+    if callable(fill_non_list_row):
+        func = fill_non_list_row
+        fill_non_list_row = False
+        detect_disable_row_call = True
+        return decorator(func)
+    return decorator
 
 
 def tool_set_default_value(**kwargs_v):

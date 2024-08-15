@@ -51,7 +51,7 @@ def start_end(regular_expression):
     return ''.join([r'^', regular_expression, r'$'])
 
 
-def set_logger(level='INFO', log_dir_name='.time_parrser_logs'):
+def set_logger(level='INFO', log_dir_name='.time_parrser_logs', use_dir=False):
     # 设置日志级别
     if level is None:
         logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def set_logger(level='INFO', log_dir_name='.time_parrser_logs'):
     stream_handler.setLevel(level)
     stream_handler.setFormatter(formatter)
 
-    if log_dir_name is not None:
+    if log_dir_name is not None and use_dir:
         # 日志写入文件 hanlder
         if log_dir_name.startswith("/"):
             filename_directory = log_dir_name
@@ -97,7 +97,7 @@ def set_logger(level='INFO', log_dir_name='.time_parrser_logs'):
     length = 20
     logger.log(level, "-" * length + " logging start " + "-" * length)
     logger.log(level, "LEVEL: {}".format(logging.getLevelName(level)))
-    if log_dir_name is not None:
+    if log_dir_name is not None and use_dir:
         logger.log(level, "PATH:  {}".format(filename_directory))
     logger.log(level, "-" * (length * 2 + 15))
 

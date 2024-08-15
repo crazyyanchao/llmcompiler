@@ -37,8 +37,8 @@ class Launch(ABC):
                  planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  joiner: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  re_planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
-                 multi_dialogue: bool = False, debug_prompt: bool = False,
-                 few_shot: BaseFewShot = None, print_graph: bool = True, print_dag: bool = True):
+                 multi_dialogue: bool = False, debug_prompt: bool = False, few_shot: BaseFewShot = None,
+                 print_graph: bool = True, print_dag: bool = True):
         """
         初始化必要参数。
         :param chat: 请求对象
@@ -77,8 +77,11 @@ class Launch(ABC):
         else:
             raise Exception("Planer is not initialized!")
 
-    def __call__(self, *args, **kwargs) -> ChatResponse:
-        return self.run()
+    def __call__(self, recursion_limit: int = 2) -> ChatResponse:
+        """
+        :param recursion_limit: Agent的迭代次数，例如设置为2表示迭代思考2次。
+        """
+        return self.run(recursion_limit)
 
     def init_llm(self, llm: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
@@ -113,17 +116,17 @@ class Launch(ABC):
             raise Exception("RePlaner is not initialized!")
 
     @abstractmethod
-    def init(self) -> CompiledGraph:
+    def init(self, *args: Any, **kwargs: Any) -> CompiledGraph:
         """
         Initialize the graph and define the graph structure.
         """
 
     @abstractmethod
-    def run(self) -> ChatResponse:
+    def run(self, *args: Any, **kwargs: Any) -> ChatResponse:
         """Run graph."""
 
     @abstractmethod
-    def initWithoutJoiner(self) -> CompiledGraph:
+    def initWithoutJoiner(self, *args: Any, **kwargs: Any) -> CompiledGraph:
         """
         Initialize the graph and define the graph structure.
         """

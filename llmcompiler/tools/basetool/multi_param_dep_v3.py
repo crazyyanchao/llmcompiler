@@ -43,19 +43,20 @@ class StockReturnFake(CompilerBaseTool):
         f"Input parameters: {field_descriptions_join(ReturnInputSchema)}"
         f"Return values: {field_descriptions_join(ReturnOutputSchema)}"
     )
-    args_schema: Type[BaseModel] = ReturnInputSchema
+    args_schema: Type[ReturnInputSchema] = ReturnInputSchema
 
     output_model: Type[BaseModel] = ReturnOutputSchema
     dag_flow_kwargs: List[str] = ['stock_return']
 
-    @tool_call_by_row_pass_parameters
+    @tool_call_by_row_pass_parameters(detect_disable_row_call=False)
     def _run(self, **kwargs: Any) -> ActionOutput:
         """
         Handles only single-value parameters; to support list parameters and multiple calls,
             use the @pass_parameters_by_row_and_call_tool annotation.
         """
-        code = kwargs.get('code', '')
-        date_str = kwargs.get('date', '')
+        result = self.args_schema.model_validate(kwargs)
+        code = result.code
+        date_str = result.date
         start_date = datetime.strptime(date_str, '%Y-%m-%d')
         returns = []
 

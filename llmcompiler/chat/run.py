@@ -53,7 +53,7 @@ class RunLLMCompiler(Launch):
             return END
         return "plan_and_schedule"
 
-    def run(self) -> ChatResponse:
+    def run(self, recursion_limit: int = 2) -> ChatResponse:
         """
         运行流程：数据提取Agent
         """
@@ -69,7 +69,7 @@ class RunLLMCompiler(Launch):
         source: List = []
         labels: List = []
         final_step: Dict = {}
-        recursion_limit = 2 * 2 + 1  # (2*(dag+join))*(最大2次迭代)
+        recursion_limit = recursion_limit * 2 + 1  # (2*(dag+join))*(最大2次迭代)
         graph_stream = graph.stream(self.rewrite.info(self.chat.message), {'recursion_limit': recursion_limit})
         iteration = 1
         try:
@@ -122,8 +122,7 @@ class RunLLMCompiler(Launch):
 
         # -----------------------------------LLMCompiler-Agent执行-----------------------------------
         results: List = []
-        recursion_limit = 2 * 2 + 1  # (2*(dag+join))*(最大2次迭代)
-        graph_stream = graph.stream(self.rewrite.info(self.chat.message), {'recursion_limit': recursion_limit})
+        graph_stream = graph.stream(self.rewrite.info(self.chat.message))
         try:
             for step in graph_stream:
                 print(

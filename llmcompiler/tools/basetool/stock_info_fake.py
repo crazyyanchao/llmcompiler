@@ -5,12 +5,14 @@
 @Time    : 2024-08-14 10:14:16
 """
 import logging
+import random
+
 from pydantic import Field, BaseModel
 from typing import List, Optional, Type, Any
 
 from llmcompiler.tools.basic import CompilerBaseTool
 from llmcompiler.tools.configure.pydantic_oper import field_descriptions_join
-from llmcompiler.tools.dag.dag_flow_params import DISABLE_ROW_CALL
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_ROW_CALL, DISABLE_FILL_NON_LIST_ROW
 from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError
 from llmcompiler.tools.generic.render_description import render_text_description
 
@@ -34,10 +36,9 @@ class InfoInputSchema(BaseModel):
 
 class InfoOutputSchema(BaseModel):
     name: Optional[str] = Field(default=None, description="stock name")
-    code: Optional[str] = Field(default=None, description="stock code")
+    code: Optional[str] = Field(default=None, description="stock code", json_schema_extra=DISABLE_ROW_CALL)
     date: Optional[str] = Field(default=None, description="establishment date")
-    stream: Optional[str] = Field(default=['upstream-sfh', 'upstream-qkv'], description="default kwargs",
-                                  json_schema_extra=DISABLE_ROW_CALL)
+    type: Optional[str] = Field(default=None, description="stock type", json_schema_extra=DISABLE_FILL_NON_LIST_ROW)
 
 
 class StockInfoFake(CompilerBaseTool):
@@ -66,7 +67,10 @@ class StockInfoFake(CompilerBaseTool):
             type = kwargs.get('type', '').lower()
             for key, info in STOCK_DATA.items():
                 if info['name'].lower() == name or key.lower() == code or info['type'].lower() == type:
-                    results.append(InfoOutputSchema(name=info['name'], code=key, date=info['establishment_date']))
+                    results.append(InfoOutputSchema(name=info['name'],
+                                                    code=key,
+                                                    date=info['establishment_date'],
+                                                    type=random.choice(['China', 'USA', ''])))
             return ActionOutput(any=results, dag_kwargs=self.flow(results))
         except Exception as e:
             logger.error(str(e))

@@ -7,7 +7,6 @@
 import random
 import logging
 
-from langchain_core.callbacks import CallbackManagerForToolRun
 from langchain_core.tools import BaseTool
 from pydantic import Field, BaseModel
 from datetime import datetime, timedelta
@@ -47,7 +46,7 @@ class StockReturnFake(BaseTool):
     args_schema: Type[BaseModel] = ReturnInputSchema
 
     @tool_call_by_row_pass_parameters
-    def _run(self, *args: Any, run_manager: Optional[CallbackManagerForToolRun] = None, **kwargs: Any) -> ActionOutput:
+    def _run(self, **kwargs: Any) -> ActionOutput:
         """
         Handles only single-value parameters; to support list parameters and multiple calls,
             use the @pass_parameters_by_row_and_call_tool annotation.
