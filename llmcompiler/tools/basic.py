@@ -8,7 +8,7 @@ import os
 import inspect
 import logging
 import importlib
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Tuple, Optional, Union
 
 import pandas as pd
@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from langchain.tools import BaseTool
 
 from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
-from llmcompiler.tools.generic.action_output import DAGFlow, DAGFlowKwargs
+from llmcompiler.tools.generic.action_output import DAGFlow, DAGFlowKwargs, ActionOutput
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -35,7 +35,7 @@ class CompilerBaseTool(BaseTool, DAGFlowParams, ABC):
     - A subclass of pydantic.v1.BaseModel if accessing v1 namespace in pydantic 2
     """
 
-    dag_flow_kwargs: Optional[List[str]] = None
+    dag_flow_kwargs: List[str] = None
     """Parameters that may be relied upon by downstream interfaces."""
 
     def flow(self, data: Union[List[BaseModel], pd.DataFrame, BaseModel, Dict[str, Any]]) -> DAGFlow:
@@ -89,6 +89,14 @@ class CompilerBaseTool(BaseTool, DAGFlowParams, ABC):
             if de.field_en not in kwargs:
                 raise ValueError("Missing parameters required by Tools-DAG-Flow.")
         return DAGFlow(tool_name=self.name, kwargs=kwargs, desc=desc)
+
+    @abstractmethod
+    def _run(self, *args: Any, **kwargs: Any) -> ActionOutput:
+        """Use the tool.
+
+        Add run_manager: Optional[CallbackManagerForToolRun] = None
+        to child implementations to enable tracing.
+        """
 
 
 class Tools(ABC):

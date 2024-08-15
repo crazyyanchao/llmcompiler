@@ -11,7 +11,7 @@ def render_text_description(description: str) -> str:
     """
     去掉描述中的换行符号、空格符，并设置中文句号结尾
     """
-    description = description.replace("\n", "").replace(" ", "").strip("。.")
+    description = description.replace("\n", "").replace("  ", "").strip("。.")
     return f"{description}。"
 
 
@@ -19,7 +19,7 @@ def render_text_description_examples(description: str, example: str) -> str:
     """
     去掉描述中的换行符号、空格符，并设置中文句号结尾
     """
-    description = description.replace("\n", "").replace(" ", "").strip("。.")
+    description = description.replace("\n", "").replace("  ", "").strip("。.")
     example = example.replace("\n", "<br>").replace(" ", "").strip("。.")
     return f"{description}。{TOOL_DESC_JOIN_EXAMPLES_MARK}{example}。"
 

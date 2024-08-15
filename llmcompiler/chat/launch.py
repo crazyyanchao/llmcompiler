@@ -14,7 +14,7 @@ from langchain_core.tools import BaseTool
 from langgraph.constants import END
 from langgraph.graph.graph import CompiledGraph
 
-from llmcompiler.few_shot.few_shot import BaseFewShot, DefaultBaseFewShot
+from llmcompiler.few_shot.few_shot import BaseFewShot
 from llmcompiler.graph.output_parser import Task
 from llmcompiler.graph.plan_and_schedule import PlanAndSchedule
 from llmcompiler.graph.rewrite import Rewrite
@@ -32,13 +32,13 @@ class Launch(ABC):
     run：运行图，传入Request对象，额外需要携带的流式参数stream_kwargs
     """
 
-    def __init__(self, chat: ChatRequest, tools: List[BaseTool], llm: Union[BaseLanguageModel,
-    List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
+    def __init__(self, chat: ChatRequest, tools: List[BaseTool],
+                 llm: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  joiner: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  re_planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  multi_dialogue: bool = False, debug_prompt: bool = False,
-                 few_shot: BaseFewShot = None, print_dag: bool = True):
+                 few_shot: BaseFewShot = None, print_graph: bool = True, print_dag: bool = True):
         """
         初始化必要参数。
         :param chat: 请求对象
@@ -49,9 +49,12 @@ class Launch(ABC):
         :param multi_dialogue: 支持多轮默认关闭<预留参数>。
         :param debug_prompt: DEBUG提示词预留参数。
         :param few_shot: Few-shot对象。
+        :param print_graph: LLMCompiler的LangGrap结构可视化语法是否打印。
+        :param print_dag: 任务的有向无环图可视化语法是否打印。
         """
         self.few_shot = few_shot
         self.chat = chat
+        self.multi_dialogue = multi_dialogue
         self.debug_prompt = debug_prompt
 
         self.swi_re_planer = None
@@ -65,9 +68,12 @@ class Launch(ABC):
         else:
             self.tools = tools
 
+        self.print_graph = print_graph
+        self.print_dag = print_dag
+
         self.rewrite = Rewrite(llm=llm, tools=tools, few_shot=few_shot)
         if self.swi_planer:
-            self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer, print_dag)
+            self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer, self.print_dag)
         else:
             raise Exception("Planer is not initialized!")
 

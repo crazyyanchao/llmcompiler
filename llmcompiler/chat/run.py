@@ -41,10 +41,11 @@ class RunLLMCompiler(Launch):
         )
         graph = graph_builder.compile()
         print(
-            f"==========================初始化工具集和Agent：{round(time.time() - start_time, 2)}秒==========================")
-        print("We can convert a graph class into Mermaid syntax.")
-        print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
-        print(graph.get_graph().draw_mermaid())
+            f"==========================Initializing Agent And Tools: {round(time.time() - start_time, 2)} seconds==========================")
+        if self.print_graph:
+            print("We can convert a graph class into Mermaid syntax.")
+            print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
+            print(graph.get_graph().draw_mermaid())
         return graph
 
     def should_continue(self, state: List[BaseMessage]):
@@ -87,7 +88,7 @@ class RunLLMCompiler(Launch):
             logging.error(f"{str(e)}")
         response = self.response_str(final_step, charts, iteration - 1)
         end_time = time.time()
-        logging.info(f"===========AI-AGENT总和执行时间：{end_time - run_start_time} 秒~\n")
+        logging.info(f"===========AI-AGENT total execution time: {end_time - run_start_time} seconds~\n")
         return self.response(query=self.chat.message, response=response, charts=charts, source=source, labels=labels)
 
     def initWithoutJoiner(self) -> CompiledGraph:
@@ -102,10 +103,11 @@ class RunLLMCompiler(Launch):
         graph_builder.set_entry_point("plan_and_schedule")
         graph = graph_builder.compile()
         print(
-            f"==========================初始化工具集和Agent：{round(time.time() - start_time, 2)}秒==========================")
-        print("We can convert a graph class into Mermaid syntax.")
-        print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
-        print(graph.get_graph().draw_mermaid())
+            f"==========================Initializing Agent And Tools: {round(time.time() - start_time, 2)} seconds==========================")
+        if self.print_graph:
+            print("We can convert a graph class into Mermaid syntax.")
+            print("On https://www.min2k.com/tools/mermaid/, you can view visual results of Mermaid syntax.")
+            print(graph.get_graph().draw_mermaid())
         return graph
 
     def runWithoutJoiner(self) -> List[Tuple[Task, Any]]:
@@ -133,5 +135,5 @@ class RunLLMCompiler(Launch):
         except GraphRecursionError as e:
             logging.error(f"{str(e)}")
         end_time = time.time()
-        logging.info(f"===========AI-AGENT总和执行时间：{end_time - start_time} 秒~\n")
+        logging.info(f"===========AI-AGENT total execution time: {end_time - start_time} seconds~\n")
         return results

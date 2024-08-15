@@ -30,7 +30,7 @@ from langchain_core.runnables import (
 
 from llmcompiler.graph.prompt import TOOL_MESSAGE_TEMPLATE
 from llmcompiler.graph.tool_message import ToolMessage
-from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS, PARTIAL_RESOLVED_ARGS_PARSE
 from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError, Chart, DAGFlow, BaseChart
 from llmcompiler.utils.string.string_sim import word_similarity_score
 from llmcompiler.graph.token_calculate import SwitchLLM
@@ -77,6 +77,8 @@ def _execute_task(task, observations, config, charts: List[Chart], tasks_tempora
         )
     try:
         _print_task(task, resolved_args)
+        # 判断父级TASK的输出，是否存在disable_row_call=true的参数，`__tasks__`
+        # TODO：每个参数值来自哪个Tool、哪个字段
         action_output = tool_to_use.invoke(resolved_args, config)
         stream_output_chart(action_output, charts)
         return action_output
@@ -186,8 +188,26 @@ def _resolve_arg_str(arg: str, observations: Dict[int, Any], cur_task: Task, tas
             # JOIN机制中依赖的Task已经执行了，observations已经获取了其它Tool运行的结果
             value = _tools_dag_flow_value(value.dag_kwargs, idx, tasks_temporary_save, arg, cur_field)
             if value is not None:
-                return value
+                if _execute_partial_parse(cur_task, cur_field):
+                    val = re.sub(r'\$\{[^}]+\}\.[\w]+', str(value), arg)
+                    return val
+                else:
+                    return value
     return arg
+
+
+def _execute_partial_parse(cur_task: Task, field: str) -> bool:
+    """
+    是否对当前字段执行参数部分解析，部分参数解析的含义为将`'average of ${2}.stock_return'`等类似的参数解析为真实参数值（参数值使用括号包围），并保留原有字符串表示
+    """
+    dat = cur_task['tool'].args_schema
+    for key, value in dat.model_fields.items():
+        json_schema_extra = getattr(value, 'json_schema_extra', {})
+        if key == field and json_schema_extra:
+            resolved_args = next(iter(PARTIAL_RESOLVED_ARGS_PARSE.keys()), None)
+            if resolved_args in json_schema_extra:
+                return json_schema_extra[resolved_args]
+    return False
 
 
 def _is_match_arg(arg: str) -> bool:

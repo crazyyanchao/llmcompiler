@@ -22,18 +22,18 @@ from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 from llmcompiler.tools.basic import CompilerBaseTool
-from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_RESOLVED_ARGS, PARTIAL_RESOLVED_ARGS_PARSE
 from llmcompiler.tools.generic.action_output import ActionOutput, ActionOutputError
 
 logger = logging.getLogger(__name__)
 
-# try:
-#     from dotenv import load_dotenv
-#
-#     load_dotenv()
-# except ImportError:
-#     raise ImportError(
-#         "The 'python-dotenv' package is required to use this class. Please install it using 'pip install python-dotenv'.")
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    raise ImportError(
+        "The 'python-dotenv' package is required to use this class. Please install it using 'pip install python-dotenv'.")
 
 _MATH_DESCRIPTION = (
     "math(problem: str, context: Optional[list[str]]) -> float:\n"
@@ -182,7 +182,8 @@ EXTRACTOR = create_structured_output_runnable(ExecuteCode,
 
 
 class InputSchema(BaseModel):
-    problem: str = Field(description="简单的数学问题", json_schema_extra=DISABLE_RESOLVED_ARGS)
+    # problem: str = Field(description="简单的数学问题", json_schema_extra=DISABLE_RESOLVED_ARGS)
+    problem: str = Field(description="简单的数学问题", json_schema_extra=PARTIAL_RESOLVED_ARGS_PARSE)
     context: Optional[List] = Field(default=None, description="提供额外的上下文信息，帮助解决数学问题")
 
 
@@ -228,4 +229,5 @@ if __name__ == '__main__':
     print(info.description)
     print(info.args)
     print(info.dag_flow_paras())
-    print(info._run(problem='sum of $1 and $2', context=[[3307], [7.565011820330969]]))
+    # print(info._run(problem='sum of $1 and $2', context=[[3307], [7.565011820330969]]))
+    print(info._run(problem='average of [0.0088, -0.0494, -0.0311, 0.0181, -0.0134, -0.0463, -0.0202, 0.0391, 0.0433, 0.0204, 0.0354, 0.033, -0.0493, 0.007, -0.0354, -0.0482, -0.0306, 0.0121, -0.0147, -0.0159, -0.0478, 0.0451, 0.038, 0.0055, -0.0283, 0.0117, -0.041, -0.047, -0.03, -0.0409]'))

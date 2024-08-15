@@ -4,11 +4,17 @@
 @Desc    : Decorator.
 @Time    : 2024-08-06 19:31:00
 """
-from typing import List, Optional, Any
+from concurrent.futures import ThreadPoolExecutor
 
+import numpy as np
+import pandas as pd
+from typing import List, Optional, Any, Dict
 from langchain_core.tools import BaseTool
 
 from llmcompiler.tools.configure.kwargs_clear import kwargs_filter_placeholder, kwargs_clear, kwargs_filter
+from llmcompiler.tools.dag.dag_flow_params import DISABLE_ROW_CALL
+from llmcompiler.tools.generic.action_output import ActionOutput, DAGFlow
+from llmcompiler.utils.thread.pool_executor import max_worker
 
 
 def tool_kwargs_filter(invalid_value: Optional[List[Any]] = None, pattern_str: Optional[str] = None):
@@ -90,6 +96,118 @@ def tool_set_pydantic_default(func):
                 kwargs[key] = value.get("default")
         result = func(*args, **kwargs)
         return result
+
+    return wrapper
+
+
+def _disable_row_call_fields(tool: BaseTool) -> List[str]:
+    """
+    disable_row_call参数为true的字段
+    """
+    fields = []
+    dat = tool.args_schema
+    for key, value in dat.model_fields.items():
+        json_schema_extra = getattr(value, 'json_schema_extra', {})
+        if json_schema_extra:
+            disable_row_call = next(iter(DISABLE_ROW_CALL.keys()), None)
+            if disable_row_call in json_schema_extra:
+                if json_schema_extra[disable_row_call]:
+                    fields.append(key)
+    return fields
+
+
+# def kwargs_convert_df(raw_data: Dict, tool: BaseTool) -> pd.DataFrame:
+#     """Convert dictionary to DataFrame."""
+#     fields = _disable_row_call_fields(tool)
+#     data = {k: v for k, v in raw_data.items() if k not in fields}
+#     max_length = max(len(v) if isinstance(v, list) else 1 for v in data.values())
+#     for key in data:
+#         while len(data[key]) < max_length:
+#             data[key].append(np.nan)
+#
+#     df = pd.DataFrame(data)
+#     return df
+
+
+def kwargs_convert_df(data: Dict) -> pd.DataFrame:
+    """Convert dictionary to DataFrame."""
+    max_length = max(len(v) if isinstance(v, list) else 1 for v in data.values())
+    for key in data:
+        while len(data[key]) < max_length:
+            data[key].append(np.nan)
+
+    df = pd.DataFrame(data)
+    return df
+
+
+def merge_output(results: List[ActionOutput]) -> ActionOutput:
+    """Merge action output."""
+    if not results:
+        raise ValueError("The results list cannot be empty")
+
+    first_result = results[0]
+    merged_any = []
+    merged_msg = []
+    merged_labels = []
+    merged_source = []
+    merged_dag_kwargs = {}
+
+    for result in results:
+        if result.any:
+            merged_any.append(result.any)
+        if result.msg and result.msg not in merged_msg:
+            merged_msg.append(result.msg)
+        if result.labels:
+            merged_labels.extend(lb for lb in result.labels if lb not in merged_labels)
+        if result.source:
+            merged_source.extend(lb for lb in result.source if lb not in merged_source)
+        if first_result.dag_kwargs.kwargs:
+            for key, value in first_result.dag_kwargs.kwargs.items():
+                if key in merged_dag_kwargs:
+                    if isinstance(value, list):
+                        merged_dag_kwargs[key].extend(value)
+                    else:
+                        merged_dag_kwargs[key].append(value)
+                else:
+                    merged_dag_kwargs[key] = (value if isinstance(value, list) else [value]).copy()
+
+    return ActionOutput(
+        status=first_result.status,
+        any_to_prompt=first_result.any_to_prompt,
+        any=merged_any,
+        msg='. '.join(merged_msg) + '.' if merged_msg else '',
+        labels=merged_labels,
+        source=merged_source,
+        dag_kwargs=DAGFlow(tool_name=first_result.dag_kwargs.tool_name, kwargs=merged_dag_kwargs,
+                           desc=first_result.dag_kwargs.desc)
+    )
+
+
+def tool_call_by_row_pass_parameters(func):
+    """
+    Pass parameters by row and call TOOL.
+    Pad the LIST parameter bitwise, then call TOOL multiple times.
+    Ensure that INPUT BASEMODEL can be validated through the LIST parameter.
+    For example, use Union[str, List] to add LIST validation for single value parameters.
+    Ensure that each parameter value in kwargs has the same number of rows.
+    """
+
+    def wrapper(*args, **kwargs):
+        print('Parsing and executing multirow parameters...')
+        # tool: BaseTool = args[0]
+        # df = kwargs_convert_df(kwargs, tool)
+        df = kwargs_convert_df(kwargs)
+        # Iterate through each row and print as a dictionary
+        params = []
+        for index, row in df.iterrows():
+            row_dict = row.to_dict()
+            params.append(row_dict)
+            print(row_dict)
+        with ThreadPoolExecutor(max_workers=max_worker()) as executor:
+            results = list(executor.map(lambda x: func(*args, **x), params))
+
+        output = merge_output(results)
+        return output
 
     return wrapper
 

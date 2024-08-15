@@ -54,7 +54,7 @@ class Planer:
             tool_desc = "\n"
             tool_desc += f"{i + 1}. **Tool Name**: `{tool.name}`\n"
             tool_desc += f"**Description**:\n {tool.description} args: {str(tool.args)}"
-            if isinstance(tool, DAGFlowParams):
+            if isinstance(tool, DAGFlowParams) and tool.dag_flow_paras():
                 tool_desc += f"\n**Output Parameters that can be used by other tools**:\n{json.dumps([flow.dict() for flow in tool.dag_flow_paras()], ensure_ascii=False)}"
             tool_desc_list.append(tool_desc)
         tool_descriptions = "\n".join(tool_desc_list)
