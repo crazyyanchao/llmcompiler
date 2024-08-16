@@ -248,12 +248,6 @@ class StockReturnFake(BaseTool):
         return ActionOutput(any=returns, msg='Test.', source=[Source(title='Test.')], labels=['Label'])
 ```
 
+## CASE:
 
-
-## 案例三：使用`json_schema_extra:DISABLE_ROW_CALL`参数禁用按行调用 【未实现】
-
-## 案例四：使用`json_schema_extra:DISABLE_RESOLVED_ARGS`参数禁用参数解析【已实现】
-
-## 案例五：使用`json_schema_extra:PARTIAL_RESOLVED_ARGS_PARSE`执行部分参数解析【已实现】
-
-
+[llmcompiler/tools/basetool](llmcompiler/tools/basetool)

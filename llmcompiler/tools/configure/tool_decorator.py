@@ -45,7 +45,7 @@ def tool_kwargs_filter(invalid_value: Optional[List[Any]] = None, pattern_str: O
 def tool_kwargs_clear(invalid_value: List[Any]):
     """
     Remove invalid values.
-    Tool input is filtered out if it is any value in the list. By default, the list is `[" ', 'None', None]`.
+    Tool input is filtered out if it is any value in the list. By default, the list is `['', 'None', None, [], {}]`.
     """
 
     def decorator(func):
@@ -58,7 +58,7 @@ def tool_kwargs_clear(invalid_value: List[Any]):
 
     if callable(invalid_value):
         func = invalid_value
-        invalid_value = ['', 'None', None]
+        invalid_value = ['', 'None', None, [], {}]
         return decorator(func)
     return decorator
 

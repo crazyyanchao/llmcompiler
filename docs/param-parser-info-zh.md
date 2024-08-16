@@ -37,7 +37,7 @@ class InputSchema(BaseModel):
 
 - DISABLE_ROW_CALL
 
-&emsp;在使用`@tool_call_by_row_pass_parameters`注解（仅在使用这个注解时会生效），搭配这个参数时表示不执行自动转为DataFrame一列的过程，而是将原有值直接扩展到其它行。
+&emsp;在使用`@tool_call_by_row_pass_parameters(detect_disable_row_call=True)`注解（仅在使用这个注解时会生效），搭配这个参数时表示不执行自动转为DataFrame一列的过程，而是将原有值直接扩展到其它行。
 `@tool_call_by_row_pass_parameters`注解的具体行为请参考注解的详细描述。
 
 ```python
@@ -48,4 +48,89 @@ class InfoOutputSchema(BaseModel):
     date: Optional[str] = Field(default=None, description="establishment date")
 ```
 
-## 作用于`_run`函数的Tool注解
+## 作用于`tool._run`函数的装饰器
+
+### tool_kwargs_filter
+
+- **含义**：过滤掉不合法的参数值，并可选地匹配特定的字符串模式。
+- **入参**：
+    - invalid_value（可选，类型：List[Any]）：需要过滤掉的无效参数值，默认值为['', 'None', None, [], {}]。
+    - pattern_str（可选，类型：str）：用于匹配无效占位符的正则表达式，默认值为r'\$\{.*?\}'。
+- **用法**：通过修饰函数来过滤kwargs中指定的无效值或符合指定正则表达式模式的值。
+- **调用方式**：
+```python
+@tool_kwargs_filter(invalid_value=[None, '', []], pattern_str=r'\$\{.*?\}')
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_kwargs_clear
+
+- **含义**：清除函数输入参数中包含特定无效值的键值对。
+- **入参**：
+  - invalid_value（可选，类型：List[Any]）：需要过滤掉的无效参数值，默认值为['', 'None', None, [], {}]。
+- **用法**：在执行函数前，删除kwargs中与指定无效值匹配的键值对。
+- **调用方式**：
+
+```python
+@tool_kwargs_clear(invalid_value=[None, '', []])
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_kwargs_filter_placeholder
+
+- **含义**：根据指定的模式字符串清除参数中的占位符。
+- **入参**：
+  - pattern_str（类型：str）：用于匹配占位符的正则表达式模式，默认值为`r'\$\{.*?\}'`。
+- **用法**：过滤掉kwargs中符合指定模式的占位符参数。
+- **调用方式**：
+
+```python
+@tool_kwargs_filter_placeholder(pattern_str=r'\$\{.*?\}')
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_set_pydantic_default
+
+- **含义**：为BaseTool实例的参数设置默认值。
+- **入参**：无显式入参。
+- **用法**：检查BaseTool实例的args参数字典，并为没有输入的参数设置默认值（如果定义了默认值）。
+- **调用方式**：
+
+```python
+@tool_set_pydantic_default
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_call_by_row_pass_parameters
+
+- **含义**：按行传递参数并调用工具函数，支持多行参数的并行处理。
+- **入参**：
+  - fill_non_list_row（可选，类型：bool）：是否自动填充单值参数至表的每一行，默认值为False。
+  - detect_disable_row_call（可选，类型：bool）：是否检测上游输出的参数是否需要忽略行扩展，默认值为False。
+- **用法**：将字典参数转换为DataFrame，逐行调用函数，使用多线程池并行执行这些调用，并合并结果。
+- **调用方式**：
+
+```python
+@tool_call_by_row_pass_parameters(fill_non_list_row=True, detect_disable_row_call=True)
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_set_default_value
+
+- **含义**：根据用户指定的默认值来填充函数的输入参数。
+- **入参**：
+  - **kwargs（类型：Dict[str, Any]）：指定的默认参数值字典，当参数未提供时使用这些默认值。
+- **用法**：如果函数调用时未提供某些参数，则使用装饰器中指定的默认值。
+- **调用方式**：
+
+```python
+@tool_set_default_value(param1='default_value1', param2=10)
+def _run(**kwargs):
+    # 函数体
+```
+
