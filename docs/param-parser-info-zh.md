@@ -134,3 +134,63 @@ def _run(**kwargs):
     # 函数体
 ```
 
+### tool_symbol_separated_string
+
+- **含义**：将指定字段转为用指定符号分割的字符串。
+- **入参**：
+  - fields（类型：List[str]）：指定字段。
+  - symbol（类型：str）：指定符号。
+- **用法**：传入如果是列表则转为指定字符分隔的字符串，传入如果是其他值则直接返回。
+- **调用方式**：
+
+```python
+@tool_symbol_separated_string(fields=['code'])
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_remove_suffix
+
+- **含义**：将指定字段的指定后缀全部移除，SUFFIX指定的后缀会被循环移除。
+- **入参**：
+  - fields（类型：List[str]）：指定字段。
+  - suffix（类型：List[str]）：指定后缀。
+- **用法**：传入如果是列表则移除指定字符后缀，对字符串循环移除，其他值则直接返回。
+- **调用方式**：
+
+```python
+@tool_remove_suffix(fields=['code'], suffix=['PL', 'GL', 'FT'])
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_remove_prefix
+
+- **含义**：将指定字段的指定前缀全部移除，PREFIX指定的前缀会被循环移除。
+- **入参**：
+  - fields（类型：List[str]）：指定字段。
+  - prefix（类型：List[str]）：指定前缀。
+- **用法**：传入如果是列表则移除指定字符前缀，对字符串循环移除，其他值则直接返回。
+- **调用方式**：
+
+```python
+@tool_remove_prefix(fields=['code'], prefix=['AA', 'GO', 'MS'])
+def _run(**kwargs):
+    # 函数体
+```
+
+### tool_string_spilt
+
+- **含义**：将指定字段的按照指定字符进行分割，获取指定索引位的参数。
+- **入参**：
+  - fields（类型：List[str]）：指定字段。
+  - split（类型：str）：指定分割符。
+  - index（类型：int）：元素索引。
+- **用法**：将指定字段的按照指定字符进行分割，如果是列表则按每个元素处理，获取指定索引位的参数。
+- **调用方式**：
+
+```python
+@tool_string_spilt(fields=['code'], split='O', index=2)
+def _run(**kwargs):
+    # 函数体
+```

@@ -13,7 +13,8 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Type, Any, Union
 
 from llmcompiler.tools.configure.pydantic_oper import field_descriptions_join
-from llmcompiler.tools.configure.tool_decorator import tool_call_by_row_pass_parameters
+from llmcompiler.tools.configure.tool_decorator import tool_call_by_row_pass_parameters, \
+    tool_symbol_separated_string, tool_remove_suffix, tool_remove_prefix, tool_string_spilt
 from llmcompiler.tools.generic.action_output import ActionOutput, Source
 from llmcompiler.tools.generic.render_description import render_text_description
 
@@ -45,7 +46,11 @@ class StockReturnFake(BaseTool):
     )
     args_schema: Type[BaseModel] = ReturnInputSchema
 
-    @tool_call_by_row_pass_parameters
+    # @tool_call_by_row_pass_parameters
+    # @tool_symbol_separated_string(fields=['code'])
+    # @tool_remove_suffix(fields=['code'], suffix=['PL', 'GL', 'FT'])
+    # @tool_remove_prefix(fields=['code'], prefix=['AA', 'GO', 'MS'])
+    @tool_string_spilt(fields=['code'], split='O', index=2)
     def _run(self, **kwargs: Any) -> ActionOutput:
         """
         Handles only single-value parameters; to support list parameters and multiple calls,

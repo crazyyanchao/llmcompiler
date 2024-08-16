@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import pandas as pd
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Union
 from langchain_core.tools import BaseTool
 
 from llmcompiler.graph.output_parser import Task
@@ -308,3 +308,142 @@ def tool_set_default_value(**kwargs_v):
         return decorator(func)
 
     return decorator
+
+
+def tool_symbol_separated_string(fields: List[str], symbol: str = ','):
+    """
+    If the input is a list, convert it into a string separated by a specified character. If the input is any other type of value, return it as is.
+    When the input parameter is a list of strings, this decorator will be useful.
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for field in fields:
+                if field in kwargs:
+                    value = kwargs[field]
+                    if isinstance(value, List):
+                        kwargs[field] = symbol.join(value)
+            result = func(*args, **kwargs)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def tool_remove_suffix(fields: List[str], suffix: List[str]):
+    """
+    CN: 将指定字段的指定后缀全部移除，SUFFIX指定的后缀会被循环移除。
+    EN: Remove all specified suffixes from the designated fields, where the SUFFIX will be iteratively removed.
+    When the input parameter is a list of strings or string, this decorator will be useful.
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for field in fields:
+                if field in kwargs:
+                    kwargs[field] = remove_suffix(kwargs[field], suffix)
+            result = func(*args, **kwargs)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def remove_suffix(value: Any, suffix: List[str]) -> Any:
+    """Remove suffix."""
+    if isinstance(value, List) and all(isinstance(item, str) for item in value):
+        new_value = []
+        for val in value:
+            for sfx in suffix:
+                val = str(val).removesuffix(sfx)
+            new_value.append(val)
+        return new_value
+    elif isinstance(value, str):
+        for sfx in suffix:
+            value = str(value).removesuffix(sfx)
+        return value
+    else:
+        return value
+
+
+def tool_remove_prefix(fields: List[str], prefix: List[str]):
+    """
+    CN: 将指定字段的指定前缀全部移除，PREFIX指定的前缀会被循环移除。
+    EN: Remove all specified prefixes from the designated fields, with the PREFIX specified being cyclically removed.
+    When the input parameter is a list of strings or string, this decorator will be useful.
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for field in fields:
+                if field in kwargs:
+                    kwargs[field] = remove_prefix(kwargs[field], prefix)
+            result = func(*args, **kwargs)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def remove_prefix(value: Any, prefix: List[str]) -> Any:
+    """Remove suffix."""
+    if isinstance(value, List) and all(isinstance(item, str) for item in value):
+        new_value = []
+        for val in value:
+            for pre in prefix:
+                val = str(val).removeprefix(pre)
+            new_value.append(val)
+        return new_value
+    elif isinstance(value, str):
+        for pre in prefix:
+            value = str(value).removeprefix(pre)
+        return value
+    else:
+        return value
+
+
+def tool_string_spilt(fields: List[str], split: str, index: int = 0):
+    """
+    CN: 将指定字段的值使用指定字符进行分割，按照指定的INDEX值获取值。
+    EN: Split the value of a specified field using a designated character, and then retrieve the value based on a specified index.
+    When the input parameter is a list of strings or string, this decorator will be useful.
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for field in fields:
+                if field in kwargs:
+                    value = kwargs[field]
+                    kwargs[field] = string_split(value, split, index)
+            result = func(*args, **kwargs)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def string_split(value: Any, split: str, index: int):
+    """INDEX START WITH `0`"""
+    if isinstance(value, List) and all(isinstance(item, str) for item in value):
+        new_value = []
+        for val in value:
+            vals = val.split(split)
+            if len(vals) >= index + 1:
+                idx = index
+            else:
+                idx = len(vals) - 1
+            new_value.append(vals[idx])
+        return new_value
+    elif isinstance(value, str):
+        vals = value.split(split)
+        if len(vals) >= index + 1:
+            idx = index
+        else:
+            idx = len(vals) - 1
+        return vals[idx]
+    else:
+        return value
