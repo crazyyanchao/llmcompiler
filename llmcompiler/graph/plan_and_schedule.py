@@ -547,8 +547,7 @@ def _print_dag(tasks_temporary_save: List[Task]):
         if not task['dependencies']:
             edges.append(Edge(source='__start__', target=str(task['idx'])))
 
-    tasks_temporary_save.sort(key=lambda task: int(task['idx']), reverse=True)
-    edges.append(Edge(source=str(tasks_temporary_save[0]['idx']), target='__end__'))
+    edges.append(Edge(source=str(tasks_temporary_save[-1]['idx']), target='__end__'))
 
     dag = Graph(nodes, edges)
     print(dag.draw_mermaid())
