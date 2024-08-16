@@ -241,7 +241,8 @@ def _has_disable_row_call_fields(dict: Dict[str, ResolvedArgs]) -> List[str]:
     return fields
 
 
-def tool_call_by_row_pass_parameters(fill_non_list_row: bool = False, detect_disable_row_call: bool = False):
+def tool_call_by_row_pass_parameters(fill_non_list_row: bool = False, detect_disable_row_call: bool = False,
+                                     limit: int = -1):
     """
     Pass parameters by row and call TOOL.
     Pad the LIST parameter bitwise, then call TOOL multiple times.
@@ -250,6 +251,7 @@ def tool_call_by_row_pass_parameters(fill_non_list_row: bool = False, detect_dis
     Ensure that each parameter value in kwargs has the same number of rows.
     @detect_disable_row_call Ignore check if the parameter for detecting the upstream output results does not require checking the expanded columns (BASEMODEL USE DISABLE_ROW_CALL).
     @fill_non_list_row Does the single-value parameter need to be automatically populated into the Table.
+    @limit Only perform the call on the first expanded LIMIT rows, with a default value of -1 indicating no limit.
     """
 
     def decorator(func):
@@ -264,6 +266,8 @@ def tool_call_by_row_pass_parameters(fill_non_list_row: bool = False, detect_dis
                 df = kwargs_convert_df(kwargs, fill_non_list_row=fill_non_list_row)
             # Iterate through each row and print as a dictionary
             params = []
+            if limit > 0:
+                df = df.head(limit)
             for index, row in df.iterrows():
                 row_dict = row.to_dict()
                 params.append(row_dict)

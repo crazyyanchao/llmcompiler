@@ -46,11 +46,11 @@ class StockReturnFake(BaseTool):
     )
     args_schema: Type[BaseModel] = ReturnInputSchema
 
-    # @tool_call_by_row_pass_parameters
+    @tool_call_by_row_pass_parameters(detect_disable_row_call=False, fill_non_list_row=True, limit=2)
     # @tool_symbol_separated_string(fields=['code'])
     # @tool_remove_suffix(fields=['code'], suffix=['PL', 'GL', 'FT'])
     # @tool_remove_prefix(fields=['code'], prefix=['AA', 'GO', 'MS'])
-    @tool_string_spilt(fields=['code'], split='O', index=2)
+    # @tool_string_spilt(fields=['code'], split='O', index=2)
     def _run(self, **kwargs: Any) -> ActionOutput:
         """
         Handles only single-value parameters; to support list parameters and multiple calls,

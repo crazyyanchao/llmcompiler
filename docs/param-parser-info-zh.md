@@ -111,6 +111,7 @@ def _run(**kwargs):
 - **入参**：
   - fill_non_list_row（可选，类型：bool）：是否自动填充单值参数至表的每一行，默认值为False。
   - detect_disable_row_call（可选，类型：bool）：是否检测上游输出的参数是否需要忽略行扩展，默认值为False。
+  - limit（可选，类型：int）：仅对展开后的前LIMIT行参数执行调用，默认-1表示不限制。
 - **用法**：将字典参数转换为DataFrame，逐行调用函数，使用多线程池并行执行这些调用，并合并结果。
 - **调用方式**：
 
