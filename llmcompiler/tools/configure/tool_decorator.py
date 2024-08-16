@@ -4,10 +4,13 @@
 @Desc    : Decorator.
 @Time    : 2024-08-06 19:31:00
 """
-from concurrent.futures import ThreadPoolExecutor
 
+import time
 import numpy as np
 import pandas as pd
+import threading
+import functools
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Optional, Any, Dict, Union
 from langchain_core.tools import BaseTool
 
@@ -455,3 +458,44 @@ def string_split(value: Any, split: str, index: int):
         return vals[idx]
     else:
         return value
+
+
+def tool_timeout(timeout: int):
+    """
+    This decorator is used to control the execution duration of a TOOL.
+    @param timeout: Timeout duration, in seconds.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create a list of tagged threads.
+            result = [None]
+            exception = [None]
+
+            # Define the objective function.
+            def target():
+                try:
+                    result[0] = func(*args, **kwargs)
+                except Exception as e:
+                    exception[0] = e
+
+            # Create thread.
+            thread = threading.Thread(target=target)
+            thread.start()
+            thread.join(timeout)
+
+            # Check if the thread is still running.
+            if thread.is_alive():
+                tool: BaseTool = args[0]
+                raise Exception(f"Tool '{tool.name}' exceeded timeout of {timeout} seconds")
+
+            # Check if the target function throws an exception.
+            if exception[0]:
+                raise exception[0]
+
+            return result[0]
+
+        return wrapper
+
+    return decorator

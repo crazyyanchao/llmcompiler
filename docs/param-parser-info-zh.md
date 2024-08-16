@@ -195,3 +195,18 @@ def _run(**kwargs):
 def _run(**kwargs):
     # 函数体
 ```
+
+### tool_timeout
+
+- **含义**：用于指定Tool最长运行时间。
+- **入参**：
+  - timeout（类型：int）：超时时间以秒为单位。
+- **用法**：在需要对Tool最长响应时间进行控制时，该装饰器非常有用。
+- **调用方式**：
+
+```python
+@tool_timeout(3)
+def _run(**kwargs):
+    # 函数体
+```
+
