@@ -247,7 +247,3 @@ class StockReturnFake(BaseTool):
 
         return ActionOutput(any=returns, msg='Test.', source=[Source(title='Test.')], labels=['Label'])
 ```
-
-## CASE:
-
-[llmcompiler/tools/basetool](llmcompiler/tools/basetool)

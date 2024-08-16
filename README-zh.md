@@ -123,6 +123,8 @@ print(llm_compiler.runWithoutJoiner())
 
 [执行复杂数学计算的案例](docs/dag-demo.md)
 
+[Tool的一些实现案例](llmcompiler/tools/basetool)
+
 ## 参考链接
 
 - [论文: An LLM Compiler for Parallel Function Calling](https://arxiv.org/abs/2312.04511)

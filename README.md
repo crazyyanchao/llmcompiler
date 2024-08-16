@@ -155,6 +155,8 @@ print(llm_compiler.runWithoutJoiner())
 
 [Example of Performing Complex Mathematical Calculations](docs/dag-demo.md)
 
+[Some implementation examples of tools](llmcompiler/tools/basetool)
+
 ## Reference Linking
 
 - [Paper: An LLM Compiler for Parallel Function Calling](https://arxiv.org/abs/2312.04511)
