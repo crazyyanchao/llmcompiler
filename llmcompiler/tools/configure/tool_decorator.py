@@ -226,6 +226,8 @@ def merge_output(results: List[ActionOutput]) -> ActionOutput:
 def _has_disable_row_call_fields(dict: Dict[str, ResolvedArgs]) -> List[str]:
     """Filter out the fields with the DISABLE_ROW_CALL=True parameter in the upstream OUTPUTSCHEMA."""
     fields = []
+    if dict is None:
+        dict = {}
     for key_v, val in dict.items():
         if not isinstance(val, List):
             task: Task = val['dep_task']
@@ -258,6 +260,8 @@ def tool_call_by_row_pass_parameters(fill_non_list_row: bool = False, detect_dis
         def wrapper(*args, **kwargs):
             print('Parsing and executing multirow parameters...')
             tool: BaseTool = args[0]
+            if tool.metadata is None:
+                tool.metadata = {}
             tool_dep_var = tool.metadata.get(RESOLVED_RAGS_DEPENDENCY_VAR, None)
             disable_row_call_fields = _has_disable_row_call_fields(tool_dep_var)
             if tool_dep_var and disable_row_call_fields and detect_disable_row_call:
