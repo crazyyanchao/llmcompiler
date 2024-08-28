@@ -98,7 +98,10 @@ def _execute_task(task, observations, config, charts: List[Chart], tasks_tempora
         # 每个参数值来自哪个Tool、哪个字段。如果依赖的TOOL的OUTPUTSCHEMA使用了`DISABLE_ROW_CALL`参数则将`RESOLVED_RAGS_DEPENDENCY`传递到下游
         if RESOLVED_RAGS_DEPENDENCY:
             tool_to_use.metadata = {RESOLVED_RAGS_DEPENDENCY_VAR: RESOLVED_RAGS_DEPENDENCY}
-        action_output = tool_to_use.invoke(resolved_args, config)
+        if resolved_args:
+            action_output = tool_to_use.invoke(resolved_args, config)
+        else:
+            action_output = tool_to_use._run()
         stream_output_chart(action_output, charts)
         return action_output
     except Exception as e:
