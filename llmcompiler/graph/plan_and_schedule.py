@@ -330,7 +330,7 @@ def _resolve_arg_str_idx(arg: Any, cur_task: Task, tasks_temporary_save: List[Ta
         else:
             # 解析不到ID默认使用上一个TASK ID，不能使用当前任务的ID，不能使用Join类任务ID
             temp_tasks = [tp for tp in tasks_temporary_save if
-                          tp["idx"] != cur_task["idx"] and tp["tool"] != "join"]
+                          tp["idx"] != cur_task["idx"] and isinstance(tp["tool"], BaseTool)]
             if temp_tasks:
                 return temp_tasks[-1]["idx"]
     except ValueError:
