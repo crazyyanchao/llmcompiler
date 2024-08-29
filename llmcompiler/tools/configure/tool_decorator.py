@@ -20,7 +20,7 @@ from llmcompiler.tools.basic import CompilerBaseTool
 from llmcompiler.tools.configure.kwargs_clear import kwargs_filter_placeholder, kwargs_clear, kwargs_filter
 from llmcompiler.tools.dag.dag_flow_params import RESOLVED_RAGS_DEPENDENCY_VAR, DISABLE_ROW_CALL
 # from llmcompiler.tools.dag.dag_flow_params import DISABLE_ROW_CALL
-from llmcompiler.tools.generic.action_output import ActionOutput, DAGFlow
+from llmcompiler.tools.generic.action_output import ActionOutput, DAGFlow, ActionOutputError
 from llmcompiler.utils.thread.pool_executor import max_worker
 
 
@@ -185,8 +185,10 @@ def kwargs_convert_df(dict: Dict, detect_disable_row_call: bool = False,
 
 def merge_output(results: List[ActionOutput]) -> ActionOutput:
     """Merge action output."""
+    results = [result for result in results if
+               isinstance(result, ActionOutput) and not isinstance(result, ActionOutputError)]
     if not results:
-        raise ValueError("The results list cannot be empty")
+        raise ValueError("The `ActionOutput` list object is found to be empty when performing the merge operation!")
 
     first_result = results[0]
     merged_any = []
