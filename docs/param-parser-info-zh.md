@@ -210,3 +210,17 @@ def _run(**kwargs):
     # 函数体
 ```
 
+### tool_timeit
+
+- **含义**：用于统计Tool运行时间。
+- **入参**：
+  - format_str（类型：str）：用于自定义打印日志格式。
+- **用法**：在需要对Tool响应时间进行打印时，该装饰器非常有用。
+- **调用方式**：
+
+```python
+@tool_timeit('Run tool: {time:.4f} seconds')
+def _run(**kwargs):
+    # 函数体
+```
+

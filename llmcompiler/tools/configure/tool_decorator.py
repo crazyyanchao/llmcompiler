@@ -6,6 +6,7 @@
 """
 
 import time
+import inspect
 import numpy as np
 import pandas as pd
 import threading
@@ -497,6 +498,51 @@ def tool_timeout(timeout: int):
                 raise exception[0]
 
             return result[0]
+
+        return wrapper
+
+    return decorator
+
+
+def tool_timeit(format_str: str = None):
+    """
+    Decorator to print the execution time of a function.
+
+    Args:
+    format_str (str, optional): A format string to customize the output of the execution time.
+                                The format string can use the {time} placeholder to represent the execution time.
+                                If format_str is not provided, the default format will be used.
+
+    Examples:
+    @tool_timeit()
+    def my_function():
+        time.sleep(1)
+
+    @tool_timeit('Initialization function: {time:.4f} seconds')
+    def another_function():
+        time.sleep(2)
+
+    Output:
+    Function 'my_function' executed in 1.0010 seconds at example.py:10
+    Initialization function: 2.0020 seconds
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            execution_time = end_time - start_time
+            file_name = inspect.getfile(func)
+            line_number = inspect.getsourcelines(func)[1]
+
+            if format_str:
+                formatted_time = format_str.format(time=execution_time)
+                print(f'{formatted_time}, {file_name}:{line_number}')
+            else:
+                print(f"Function '{func.__name__}' executed in {execution_time:.4f} seconds "
+                      f"at {file_name}:{line_number}")
+            return result
 
         return wrapper
 
