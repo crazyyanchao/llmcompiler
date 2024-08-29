@@ -198,6 +198,8 @@ def merge_output(results: List[ActionOutput]) -> ActionOutput:
     merged_source = []
     merged_dag_kwargs = {}
 
+    dag_list = []
+
     for result in results:
         if result.any:
             merged_any.append(result.any)
@@ -207,15 +209,20 @@ def merge_output(results: List[ActionOutput]) -> ActionOutput:
             merged_labels.extend(lb for lb in result.labels if lb not in merged_labels)
         if result.source:
             merged_source.extend(lb for lb in result.source if lb not in merged_source)
-        if first_result.dag_kwargs.kwargs:
-            for key, value in first_result.dag_kwargs.kwargs.items():
-                if key in merged_dag_kwargs:
-                    if isinstance(value, list):
-                        merged_dag_kwargs[key].extend(value)
-                    else:
-                        merged_dag_kwargs[key].append(value)
+        if result.dag_kwargs.kwargs:
+            dag_list.append(result.dag_kwargs.kwargs)
+
+    # dag_list 合并为一个，dag_list 格式为 List[Dict[str, Any]]
+    # 将 dag_list 合并为一个DICT，列表中元素KEY相同的VALUE（VALUE如果是列表）则合并为一个VALUE
+    for dag in dag_list:
+        for key, value in dag.items():
+            if key in merged_dag_kwargs:
+                if isinstance(value, list):
+                    merged_dag_kwargs[key].extend(value)
                 else:
-                    merged_dag_kwargs[key] = (value if isinstance(value, list) else [value]).copy()
+                    merged_dag_kwargs[key].append(value)
+            else:
+                merged_dag_kwargs[key] = (value if isinstance(value, list) else [value]).copy()
 
     return ActionOutput(
         status=first_result.status,
