@@ -81,6 +81,7 @@ def _execute_task(task, observations, config, charts: List[Chart], tasks_tempora
         if isinstance(args, str):
             resolved_args = _resolve_arg(args, observations, task, tasks_temporary_save)
         elif isinstance(args, dict):
+            args = _pre_args(args)
             resolved_args = {
                 key: _resolve_arg(val, observations, task, tasks_temporary_save, key) for key, val in args.items()
             }
@@ -109,6 +110,51 @@ def _execute_task(task, observations, config, charts: List[Chart], tasks_tempora
                 f"ERROR(Failed to call {tool_to_use.name} with args {args}."
                 + f" Args resolved to {resolved_args}. Error: {repr(e)})"
         )
+
+
+def _pre_args(args: Dict[str, Any]) -> Dict[str, Any]:
+    """参数预处理"""
+    new_args = {}
+    additional_args = {}
+
+    for key, value in args.items():
+        if isinstance(value, str):
+            parsed_result = _args_parse_dict(value)
+            # 检查是否包含 '__value__' 并处理
+            if '__value__' in parsed_result:
+                new_args[key] = parsed_result['__value__']
+            else:
+                new_args[key] = None
+            # 拼接额外的 key-value 对
+            for k, v in parsed_result.items():
+                if k != '__value__':
+                    additional_args[k] = v
+        else:
+            new_args[key] = value
+
+    # 合并 additional_args 到 new_args
+    new_args.update(additional_args)
+    return new_args
+
+
+def _args_parse_dict(input_string) -> Dict[str, Any]:
+    """
+    正则表达式匹配 key=value 的模式，如果有剩余部分则保存在__value__字段中
+    :param input_string: 输入字符串
+    :return:
+    """
+    pattern = r'(\w+)=["\']([^"\']+)["\']'
+    matches = re.findall(pattern, input_string)
+
+    # 构建字典
+    result_dict = {key: value for key, value in matches}
+
+    # 移除已匹配部分，剩余的作为单独的值
+    remaining = re.sub(pattern, '', input_string).replace(',', '').strip()
+    if remaining:
+        result_dict['__value__'] = remaining.strip('"')
+
+    return result_dict
 
 
 def _print_task(task: Task, resolved_args: Dict = None):
