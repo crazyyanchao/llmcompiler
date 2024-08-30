@@ -120,15 +120,18 @@ def _pre_args(args: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in args.items():
         if isinstance(value, str):
             parsed_result = _args_parse_dict(value)
-            # 检查是否包含 '__value__' 并处理
-            if '__value__' in parsed_result:
-                new_args[key] = parsed_result['__value__']
+            if isinstance(parsed_result, Dict):
+                # 检查是否包含 '__value__' 并处理
+                if '__value__' in parsed_result:
+                    new_args[key] = parsed_result['__value__']
+                else:
+                    new_args[key] = None
+                # 拼接额外的 key-value 对
+                for k, v in parsed_result.items():
+                    if k != '__value__':
+                        additional_args[k] = v
             else:
-                new_args[key] = None
-            # 拼接额外的 key-value 对
-            for k, v in parsed_result.items():
-                if k != '__value__':
-                    additional_args[k] = v
+                new_args[key] = parsed_result
         else:
             new_args[key] = value
 
