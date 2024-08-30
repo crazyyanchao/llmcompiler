@@ -149,6 +149,10 @@ def _args_parse_dict(input_string) -> Dict[str, Any]:
     # 构建字典
     result_dict = {key: value for key, value in matches}
 
+    if not result_dict:
+        # 空字典表示没有提取到 key=value，可以直接返回
+        return input_string
+
     # 移除已匹配部分，剩余的作为单独的值
     remaining = re.sub(pattern, '', input_string).replace(',', '').strip()
     if remaining:
