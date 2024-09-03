@@ -13,7 +13,6 @@ from langchain_core.messages import ChatMessage
 from langchain_core.tools import BaseTool
 from langgraph.constants import END
 from langgraph.graph.graph import CompiledGraph
-from langchain.prompts import PromptTemplate
 
 from llmcompiler.few_shot.few_shot import BaseFewShot
 from llmcompiler.graph.output_parser import Task
@@ -39,8 +38,7 @@ class Launch(ABC):
                  joiner: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  re_planer: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]] = None,
                  multi_dialogue: bool = False, debug_prompt: bool = False, few_shot: BaseFewShot = None,
-                 print_graph: bool = True, print_dag: bool = True,
-                 custom_prompts: dict[str, str] = None):
+                 print_graph: bool = True, print_dag: bool = True):
         """
         初始化必要参数。
         :param chat: 请求对象
@@ -53,13 +51,11 @@ class Launch(ABC):
         :param few_shot: Few-shot对象。
         :param print_graph: LLMCompiler的LangGrap结构可视化语法是否打印。
         :param print_dag: 任务的有向无环图可视化语法是否打印。
-        :param custom_prompts: 自定义提示词。
         """
         self.few_shot = few_shot
         self.chat = chat
         self.multi_dialogue = multi_dialogue
         self.debug_prompt = debug_prompt
-        self.custom_prompts = custom_prompts
 
         self.swi_re_planer = None
         self.swi_joiner = None
@@ -75,7 +71,7 @@ class Launch(ABC):
         self.print_graph = print_graph
         self.print_dag = print_dag
 
-        self.rewrite = Rewrite(llm=llm, tools=tools, few_shot=few_shot, custom_prompts=custom_prompts)
+        self.rewrite = Rewrite(llm=llm, tools=tools, few_shot=few_shot)
         if self.swi_planer:
             self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer, self.print_dag)
         else:
