@@ -4,9 +4,6 @@
 @Desc    : LLMCompiler
 @Time    : 2024-08-02 09:30:49
 """
-from llmcompiler.utils.date.date import formatted_dt_now
-
-
 PLANER_SYSTEM_PROMPT_1 = """Given a user query, create a plan to solve it with the utmost parallelizability. Each plan should comprise an action from the following {num_tools} types:
 {tool_descriptions}
 {num_tools}. join(): Collects and combines results from prior actions.
@@ -131,42 +128,3 @@ JOINER_RESPONSE_HUMAN_TEMPLATE = """请基于用户问题，和给出的数据�
 {question}
 
 Let’s think step by step!"""
-
-
-SYSTEM_TEMPLATE = f"""你是由易方达基金创造的金融领域专家同时精通自然语言处理NLP技术，而且非常擅长使用工具解决问题。
-你可以基于用户问题、相关信息、参考计划、可选工具、备注说明，生成一个专业且简洁的找数据的最少执行计划。
-你的目标是遵循备注说明的内容，在不改变原有用户问题含义的情况下对用户问题生成执行计划。
-"""
-
-HUMAN_TEMPLATE = f"""**用户问题**
-{{question}}
-
-**相关信息**
-{{info}}
-
-**参考计划**
-{{examples}}
-
-**可选工具**
-{{tools}}
-
-**备注说明**
-生成计划时需要详细列出要查找哪些数据，每个计划的开头一般都是`查找`，结尾一般需要列出可以使用的工具，备选工具已经在**可选工具**中列出，使用工具时可能需要一些必要参数请将这些参数列出来。
-生成计划时请充分参考相关信息中列出的内容，确保每个计划都补充了上下文信息，不要有冗余的执行计划。
-特别要注意如果相关信息中有基金代码需要补充到生成的执行计划中。
-现在的时间是：{formatted_dt_now()}，执行计划中的时间词注意替换为具体时间。
-相关信息中可能包含除了时间信息外一些其它重要内容，你可以充分利用。
-闲聊类问题不需要给出执行计划。
-不要说出需要使用哪些找数据工具、数据源、第三方平台工具、查找官网等等信息。
-不要说出任何抱歉、对不起、根据提供的信息等等与找数据没关系的语句。
-不需要尝试回答问题，也不要给出任何分析后的结果。
-最终的响应内容包含<用户问题>、<执行计划>两项即可。
-去掉用户问题中关于结果形式的描述。
-
-Let’s think step by step!"""
-
-
-RESPONSE_PLAN_FORMAT_PREFIX = """下面列出了解决用户问题需要参考的执行计划，请充分参考执行计划的步骤生成`Plan`。
-"""
-
-RESPONSE_PLAN_FORMAT_SUFFIX = """\nLet’s think step by step!"""
