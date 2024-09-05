@@ -229,13 +229,13 @@ def _resolve_arg(arg: Union[str, Any], observations: Dict[int, Any], cur_task: T
     """
     # For dependencies on other tasks
     if not _execute_parameter_parse(cur_task, field):
-        return str(arg)
+        return arg
     if isinstance(arg, str):
         return _resolve_arg_str(arg, observations, cur_task, tasks_temporary_save, field)
     elif isinstance(arg, list):
         return [_resolve_arg_str(a, observations, cur_task, tasks_temporary_save, field) for a in arg]
     else:
-        return str(arg)
+        return arg
 
 
 def _execute_parameter_parse(cur_task: Task, field: str) -> bool:
@@ -243,6 +243,8 @@ def _execute_parameter_parse(cur_task: Task, field: str) -> bool:
     是否对当前字段执行参数解析，参数解析的含义为将`${1}.code、$1`等类似的参数解析为真实参数值
     """
     dat = cur_task['tool'].args_schema
+    if dat is None:
+        return False
     for key, value in dat.model_fields.items():
         json_schema_extra = getattr(value, 'json_schema_extra', {})
         if key == field and json_schema_extra:
