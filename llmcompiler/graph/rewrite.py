@@ -17,6 +17,8 @@ from langchain.prompts import PromptTemplate, ChatPromptTemplate, SystemMessageP
 
 from llmcompiler.few_shot.few_shot import BaseFewShot
 from llmcompiler.graph.prompt import HUMAN_MESSAGE_TEMPLATE, SYSTEM_TEMPLATE, HUMAN_TEMPLATE, RESPONSE_PLAN_FORMAT_PREFIX, RESPONSE_PLAN_FORMAT_SUFFIX
+from llmcompiler.utils.date.date import formatted_dt_now
+from llmcompiler.utils.prompt.prompt import get_custom_or_default
 from llmcompiler.utils.timeparser import TimeExtractor
 
 
@@ -104,8 +106,8 @@ REWRITE_PROMPT = ChatPromptTemplate.from_messages(
         SystemMessagePromptTemplate(
             prompt=PromptTemplate(input_variables=[], template=SYSTEM_TEMPLATE)),
         HumanMessagePromptTemplate(
-            prompt=PromptTemplate(input_variables=["date", "question"],
-                                  template=HUMAN_TEMPLATE)
+            prompt=PromptTemplate(input_variables=["question"],
+                                  template=HUMAN_TEMPLATE).partial(formatted_dt_now=formatted_dt_now())
         )
     ]
 )
@@ -126,12 +128,11 @@ class Rewrite(BaseRewrite):
         """
         print("================================ Rewriter Without LLM ================================")
         try:
-            if self.custom_prompts and "HUMAN_MESSAGE_TEMPLATE" in self.custom_prompts:
-                REWRITE_INFO_PROMPT = PromptTemplate.from_template(self.custom_prompts["HUMAN_MESSAGE_TEMPLATE"])
-            else:
-                REWRITE_INFO_PROMPT = PromptTemplate.from_template(HUMAN_MESSAGE_TEMPLATE)
+            rewrite_info_prompt = PromptTemplate.from_template(
+                get_custom_or_default(self.custom_prompts, "HUMAN_MESSAGE_TEMPLATE", HUMAN_MESSAGE_TEMPLATE)
+            )
             kwargs = inputs_format_message(text=message, few_shot=self.few_shot, time_parser=True)
-            new_message = REWRITE_INFO_PROMPT.format(info=kwargs['info'], examples=kwargs['examples'], question=message)
+            new_message = rewrite_info_prompt.format(info=kwargs['info'], examples=kwargs['examples'], question=message)
             print(new_message)
             return [HumanMessage(content=new_message)]
         except ValueError:

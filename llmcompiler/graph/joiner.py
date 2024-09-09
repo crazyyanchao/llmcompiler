@@ -26,6 +26,7 @@ from langchain_core.messages import (
 
 from llmcompiler.graph.prompt import JOINER_SYSTEM_PROMPT_1, JOINER_SYSTEM_PROMPT_2, JOINER_RESPONSE_HUMAN_TEMPLATE
 from llmcompiler.utils.date.date import formatted_dt_now
+from llmcompiler.utils.prompt.prompt import get_custom_or_default
 from llmcompiler.utils.string.question_trim import extract_json_dict
 from llmcompiler.graph.token_calculate import SwitchLLM, auto_switch_llm
 
@@ -62,8 +63,8 @@ class Joiner:
         self.custom_prompts = custom_prompts
 
     def init(self, messages: list):
-        joiner_system_prompt_1 = self.custom_prompts["JOINER_SYSTEM_PROMPT_1"] if self.custom_prompts and "JOINER_SYSTEM_PROMPT_1" in self.custom_prompts else JOINER_SYSTEM_PROMPT_1
-        joiner_system_prompt_2 = self.custom_prompts["JOINER_SYSTEM_PROMPT_2"] if self.custom_prompts and "JOINER_SYSTEM_PROMPT_2" in self.custom_prompts else JOINER_SYSTEM_PROMPT_2
+        joiner_system_prompt_1 = get_custom_or_default(self.custom_prompts, "JOINER_SYSTEM_PROMPT_1", JOINER_SYSTEM_PROMPT_1)
+        joiner_system_prompt_2 = get_custom_or_default(self.custom_prompts, "JOINER_SYSTEM_PROMPT_2", JOINER_SYSTEM_PROMPT_2)
         PROMPT = ChatPromptTemplate.from_messages(
             [
                 SystemMessagePromptTemplate(
@@ -107,7 +108,7 @@ class Joiner:
         """
         指定Joiner阶段固定的用户消息模板
         """
-        joiner_response_human_template = self.custom_prompts["JOINER_RESPONSE_HUMAN_TEMPLATE"] if self.custom_prompts and "JOINER_RESPONSE_HUMAN_TEMPLATE" in self.custom_prompts else JOINER_RESPONSE_HUMAN_TEMPLATE
+        joiner_response_human_template = get_custom_or_default(self.custom_prompts, "JOINER_RESPONSE_HUMAN_TEMPLATE", JOINER_RESPONSE_HUMAN_TEMPLATE)
         REWRITE_INFO_PROMPT = PromptTemplate.from_template(joiner_response_human_template)
         new_message = REWRITE_INFO_PROMPT.format(question=self.question)
         return new_message

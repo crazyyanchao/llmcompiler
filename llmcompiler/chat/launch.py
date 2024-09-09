@@ -77,7 +77,7 @@ class Launch(ABC):
 
         self.rewrite = Rewrite(llm=llm, tools=tools, few_shot=few_shot, custom_prompts=custom_prompts)
         if self.swi_planer:
-            self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer, self.print_dag)
+            self.plan_and_schedule = PlanAndSchedule(self.swi_planer, self.tools, self.swi_re_planer, self.print_dag, self.custom_prompts)
         else:
             raise Exception("Planer is not initialized!")
 

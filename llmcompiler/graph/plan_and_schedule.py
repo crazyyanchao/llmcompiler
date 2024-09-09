@@ -678,7 +678,8 @@ class PlanAndSchedule:
     """
 
     def __init__(self, llm: Union[SwitchLLM, List[SwitchLLM]], tools: Sequence[BaseTool],
-                 re_llm: Union[SwitchLLM, List[SwitchLLM]] = None, print_dag: bool = True):
+                 re_llm: Union[SwitchLLM, List[SwitchLLM]] = None, print_dag: bool = True,
+                 custom_prompts: dict[str, str] = None):
         self.llm = llm
         self.re_llm = re_llm
         self.tools = tools
@@ -686,10 +687,11 @@ class PlanAndSchedule:
         self.tasks_temporary_save = []
         self.observations = {}  # Save all previous tool responses
         self.print_dag = print_dag
+        self.custom_prompts = custom_prompts
 
     # @as_runnable
     def init(self, messages: List[BaseMessage], config):
-        planner = Planer(self.llm, self.tools, self.re_llm).init()
+        planner = Planer(self.llm, self.tools, self.re_llm, self.custom_prompts).init()
         tasks = planner.stream(messages, config)
         # Begin executing the planner immediately
         try:
