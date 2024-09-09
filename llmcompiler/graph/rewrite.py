@@ -106,7 +106,7 @@ REWRITE_PROMPT = ChatPromptTemplate.from_messages(
         SystemMessagePromptTemplate(
             prompt=PromptTemplate(input_variables=[], template=SYSTEM_TEMPLATE)),
         HumanMessagePromptTemplate(
-            prompt=PromptTemplate(input_variables=["question"],
+            prompt=PromptTemplate(input_variables=["date", "question"],
                                   template=HUMAN_TEMPLATE).partial(formatted_dt_now=formatted_dt_now())
         )
     ]
