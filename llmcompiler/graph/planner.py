@@ -20,16 +20,7 @@ from llmcompiler.graph.prompt import PLANER_SYSTEM_PROMPT_1, PLANER_SYSTEM_PROMP
 from llmcompiler.tools.dag.dag_flow_params import DAGFlowParams
 from llmcompiler.utils.date.date import formatted_dt_now
 from llmcompiler.graph.token_calculate import SwitchLLM, auto_switch_llm
-
-PROMPT = ChatPromptTemplate.from_messages(
-    [
-        SystemMessagePromptTemplate(
-            prompt=PromptTemplate(input_variables=[], template=PLANER_SYSTEM_PROMPT_1)),
-        MessagesPlaceholder(variable_name='messages'),
-        SystemMessagePromptTemplate(
-            prompt=PromptTemplate(input_variables=['examples'], template=PLANER_SYSTEM_PROMPT_2)),
-    ]
-)
+from llmcompiler.utils.prompt.prompt import get_custom_or_default
 
 
 class Planer:
@@ -39,15 +30,25 @@ class Planer:
 
     def __init__(self, llm: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]],
                  tools: Sequence[BaseTool],
-                 re_llm: Union[SwitchLLM, List[SwitchLLM]] = None):
+                 re_llm: Union[SwitchLLM, List[SwitchLLM]] = None,
+                 custom_prompts: dict[str, str] = None):
         self.llm = llm
         self.re_llm = re_llm
         if re_llm is None:
             self.re_llm = llm
         self.tools = tools
+        self.custom_prompts = custom_prompts
 
     def init(self):
-        base_prompt = PROMPT
+        base_prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessagePromptTemplate(
+                    prompt=PromptTemplate(input_variables=[''], template=get_custom_or_default(self.custom_prompts, "PLANER_SYSTEM_PROMPT_1", PLANER_SYSTEM_PROMPT_1))),
+                MessagesPlaceholder(variable_name='messages'),
+                SystemMessagePromptTemplate(
+                    prompt=PromptTemplate(input_variables=['examples'], template=get_custom_or_default(self.custom_prompts, "PLANER_SYSTEM_PROMPT_2", PLANER_SYSTEM_PROMPT_2))),
+            ]
+        )
         # print(base_prompt.pretty_print())
         tool_desc_list = []
         for i, tool in enumerate(self.tools):

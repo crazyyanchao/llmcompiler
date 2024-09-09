@@ -26,18 +26,10 @@ from langchain_core.messages import (
 
 from llmcompiler.graph.prompt import JOINER_SYSTEM_PROMPT_1, JOINER_SYSTEM_PROMPT_2, JOINER_RESPONSE_HUMAN_TEMPLATE
 from llmcompiler.utils.date.date import formatted_dt_now
+from llmcompiler.utils.prompt.prompt import get_custom_or_default
 from llmcompiler.utils.string.question_trim import extract_json_dict
 from llmcompiler.graph.token_calculate import SwitchLLM, auto_switch_llm
 
-PROMPT = ChatPromptTemplate.from_messages(
-    [
-        SystemMessagePromptTemplate(
-            prompt=PromptTemplate(input_variables=[], template=JOINER_SYSTEM_PROMPT_1)),
-        MessagesPlaceholder(variable_name='messages'),
-        SystemMessagePromptTemplate(
-            prompt=PromptTemplate(input_variables=[], template=JOINER_SYSTEM_PROMPT_2)),
-    ]
-)
 
 
 class FinalResponse(BaseModel):
@@ -64,12 +56,24 @@ class Joiner:
     Joiner: Responds to the user or triggers a second plan
     """
 
-    def __init__(self, llm: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]], tools: Sequence[BaseTool], question: str):
+    def __init__(self, llm: Union[BaseLanguageModel, List[BaseLanguageModel], SwitchLLM, List[SwitchLLM]], tools: Sequence[BaseTool], question: str, custom_prompts: dict[str, str] = None):
         self.llm = llm
         self.tools = tools
         self.question = question
+        self.custom_prompts = custom_prompts
 
     def init(self, messages: list):
+        joiner_system_prompt_1 = get_custom_or_default(self.custom_prompts, "JOINER_SYSTEM_PROMPT_1", JOINER_SYSTEM_PROMPT_1)
+        joiner_system_prompt_2 = get_custom_or_default(self.custom_prompts, "JOINER_SYSTEM_PROMPT_2", JOINER_SYSTEM_PROMPT_2)
+        PROMPT = ChatPromptTemplate.from_messages(
+            [
+                SystemMessagePromptTemplate(
+                    prompt=PromptTemplate(input_variables=[], template=joiner_system_prompt_1)),
+                MessagesPlaceholder(variable_name='messages'),
+                SystemMessagePromptTemplate(
+                    prompt=PromptTemplate(input_variables=[], template=joiner_system_prompt_2)),
+            ]
+        )
         # print(PROMPT.pretty_print())
         tool_descriptions = "\n".join(
             f"{i + 1}. {tool.name}: {tool.description} args: {str(tool.args)}\n"
@@ -104,7 +108,8 @@ class Joiner:
         """
         指定Joiner阶段固定的用户消息模板
         """
-        REWRITE_INFO_PROMPT = PromptTemplate.from_template(JOINER_RESPONSE_HUMAN_TEMPLATE)
+        joiner_response_human_template = get_custom_or_default(self.custom_prompts, "JOINER_RESPONSE_HUMAN_TEMPLATE", JOINER_RESPONSE_HUMAN_TEMPLATE)
+        REWRITE_INFO_PROMPT = PromptTemplate.from_template(joiner_response_human_template)
         new_message = REWRITE_INFO_PROMPT.format(question=self.question)
         return new_message
 

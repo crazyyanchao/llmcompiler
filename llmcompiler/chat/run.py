@@ -32,7 +32,7 @@ class RunLLMCompiler(Launch):
         start_time = time.time()
         graph_builder = MessageGraph()
         graph_builder.add_node("plan_and_schedule", self.plan_and_schedule.init)
-        graph_builder.add_node("join", Joiner(self.swi_joiner, self.tools, self.chat.message).init)
+        graph_builder.add_node("join", Joiner(self.swi_joiner, self.tools, self.chat.message, self.custom_prompts).init)
         graph_builder.set_entry_point("plan_and_schedule")
         graph_builder.add_edge("plan_and_schedule", "join")
         graph_builder.add_conditional_edges(
