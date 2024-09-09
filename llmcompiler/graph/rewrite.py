@@ -16,8 +16,7 @@ from langchain.prompts import PromptTemplate, ChatPromptTemplate, SystemMessageP
     HumanMessagePromptTemplate
 
 from llmcompiler.few_shot.few_shot import BaseFewShot
-from llmcompiler.graph.prompt import HUMAN_MESSAGE_TEMPLATE
-from llmcompiler.utils.date.date import formatted_dt_now
+from llmcompiler.graph.prompt import HUMAN_MESSAGE_TEMPLATE, SYSTEM_TEMPLATE, HUMAN_TEMPLATE, RESPONSE_PLAN_FORMAT_PREFIX, RESPONSE_PLAN_FORMAT_SUFFIX
 from llmcompiler.utils.timeparser import TimeExtractor
 
 
@@ -28,38 +27,6 @@ class BaseRewrite(ABC):
     def info(self, text: str) -> List[BaseMessage]:
         """Rewrite user input and outputs a list of messages."""
 
-
-SYSTEM_TEMPLATE = f"""你是由易方达基金创造的金融领域专家同时精通自然语言处理NLP技术，而且非常擅长使用工具解决问题。
-你可以基于用户问题、相关信息、参考计划、可选工具、备注说明，生成一个专业且简洁的找数据的最少执行计划。
-你的目标是遵循备注说明的内容，在不改变原有用户问题含义的情况下对用户问题生成执行计划。
-"""
-
-HUMAN_TEMPLATE = f"""**用户问题**
-{{question}}
-
-**相关信息**
-{{info}}
-
-**参考计划**
-{{examples}}
-
-**可选工具**
-{{tools}}
-
-**备注说明**
-生成计划时需要详细列出要查找哪些数据，每个计划的开头一般都是`查找`，结尾一般需要列出可以使用的工具，备选工具已经在**可选工具**中列出，使用工具时可能需要一些必要参数请将这些参数列出来。
-生成计划时请充分参考相关信息中列出的内容，确保每个计划都补充了上下文信息，不要有冗余的执行计划。
-特别要注意如果相关信息中有基金代码需要补充到生成的执行计划中。
-现在的时间是：{formatted_dt_now()}，执行计划中的时间词注意替换为具体时间。
-相关信息中可能包含除了时间信息外一些其它重要内容，你可以充分利用。
-闲聊类问题不需要给出执行计划。
-不要说出需要使用哪些找数据工具、数据源、第三方平台工具、查找官网等等信息。
-不要说出任何抱歉、对不起、根据提供的信息等等与找数据没关系的语句。
-不需要尝试回答问题，也不要给出任何分析后的结果。
-最终的响应内容包含<用户问题>、<执行计划>两项即可。
-去掉用户问题中关于结果形式的描述。
-
-Let’s think step by step!"""
 
 
 def examples(text: str, few_shot: BaseFewShot) -> str:
@@ -123,10 +90,6 @@ def time_info_time_parser(text: str) -> List:
 # RESPONSE_PLAN_FORMAT_PREFIX = """下面列出了用户问题以及解决问题需要的执行计划，请充分参考执行计划的步骤解决用户问题，执行计划中列出的工具至少需要调用一次，解析Action时请认真检查。
 # """
 
-RESPONSE_PLAN_FORMAT_PREFIX = """下面列出了解决用户问题需要参考的执行计划，请充分参考执行计划的步骤生成`Plan`。
-"""
-
-RESPONSE_PLAN_FORMAT_SUFFIX = """\nLet’s think step by step!"""
 
 # RESPONSE_PLAN_FORMAT = f"""{RESPONSE_PLAN_FORMAT_PREFIX}
 # **用户问题**
@@ -147,15 +110,15 @@ REWRITE_PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-REWRITE_INFO_PROMPT = PromptTemplate.from_template(HUMAN_MESSAGE_TEMPLATE)
 
 
 class Rewrite(BaseRewrite):
 
-    def __init__(self, few_shot: BaseFewShot, llm: BaseLanguageModel = None, tools: Sequence[BaseTool] = None):
+    def __init__(self, few_shot: BaseFewShot, llm: BaseLanguageModel = None, tools: Sequence[BaseTool] = None, custom_prompts: dict[str, str] = None):
         self.llm = llm
         self.tools = tools
         self.few_shot = few_shot
+        self.custom_prompts = custom_prompts
 
     def info(self, message) -> List[HumanMessage]:
         """
@@ -163,6 +126,10 @@ class Rewrite(BaseRewrite):
         """
         print("================================ Rewriter Without LLM ================================")
         try:
+            if self.custom_prompts and "HUMAN_MESSAGE_TEMPLATE" in self.custom_prompts:
+                REWRITE_INFO_PROMPT = PromptTemplate.from_template(self.custom_prompts["HUMAN_MESSAGE_TEMPLATE"])
+            else:
+                REWRITE_INFO_PROMPT = PromptTemplate.from_template(HUMAN_MESSAGE_TEMPLATE)
             kwargs = inputs_format_message(text=message, few_shot=self.few_shot, time_parser=True)
             new_message = REWRITE_INFO_PROMPT.format(info=kwargs['info'], examples=kwargs['examples'], question=message)
             print(new_message)
