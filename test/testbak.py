@@ -45,12 +45,12 @@ if __name__ == '__main__':
     chat = ChatRequest(message=message, session_id="session-id0", create_time=formatted_dt_now())
 
     tools = DefineTools().tools()
-    llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3, model_kwargs={'stream': False})
     llm_compiler = RunLLMCompiler(chat, tools, llm)
 
     # result = llm_compiler()
-    # result = llm_compiler.planer_invoke()
-    result = llm_compiler.planer_invoke_output()
+    # result = llm_compiler.planer_invoke() # model_kwargs={'stream': False}
+    result = llm_compiler.planer_invoke_output()  # model_kwargs={'stream': False}
     # result = run(chat)
 
     print(result)

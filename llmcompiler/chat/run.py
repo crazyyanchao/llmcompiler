@@ -138,7 +138,7 @@ class RunLLMCompiler(Launch):
         return results
 
     def planer_invoke(self) -> List[Task]:
-        """只生成计划，不执行TASK"""
+        """只生成计划，不执行TASK【设置LLM参数`model_kwargs={'stream': False}`】"""
         start_time = time.time()
         logging.info(self.chat.message)
         tasks = self.plan_and_schedule.plan(self.rewrite.info(self.chat.message))
@@ -148,11 +148,11 @@ class RunLLMCompiler(Launch):
         return tasks
 
     def planer_invoke_output(self) -> List[Tuple[Task, Any]]:
-        """生成计划，并执行TASK"""
+        """生成计划，并执行TASK【设置LLM参数`model_kwargs={'stream': False}`】"""
         start_time = time.time()
         logging.info(self.chat.message)
-        tasks = self.plan_and_schedule.plan_output(self.rewrite.info(self.chat.message))
+        results = self.plan_and_schedule.plan_output(self.rewrite.info(self.chat.message))
         end_time = time.time()
-        logging.info(tasks)
+        logging.info(results)
         logging.info(f"===========AI-AGENT total execution time: {end_time - start_time} seconds~\n")
-        return tasks
+        return results

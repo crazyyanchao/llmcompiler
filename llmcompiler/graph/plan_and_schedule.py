@@ -728,4 +728,4 @@ class PlanAndSchedule:
         results = []
         for index, task in enumerate(tasks):
             results.append((task, self.observations.get(index + 1)))
-        return tasks
+        return results
