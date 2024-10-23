@@ -48,7 +48,9 @@ if __name__ == '__main__':
     llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
     llm_compiler = RunLLMCompiler(chat, tools, llm)
 
-    result = llm_compiler()
+    # result = llm_compiler()
+    # result = llm_compiler.planer_invoke()
+    result = llm_compiler.planer_invoke_output()
     # result = run(chat)
 
     print(result)

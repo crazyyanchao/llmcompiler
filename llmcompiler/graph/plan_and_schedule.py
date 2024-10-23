@@ -9,7 +9,7 @@ import re
 import time
 import logging
 import itertools
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, wait
 
 from langchain_core.prompts import PromptTemplate
@@ -25,7 +25,7 @@ from llmcompiler.graph.output_parser import Task
 from typing import Any, Union, Iterable, List, Dict
 from typing_extensions import TypedDict
 from langchain_core.runnables import (
-    chain as as_runnable,
+    chain as as_runnable, RunnableConfig,
 )
 
 from llmcompiler.graph.prompt import TOOL_MESSAGE_TEMPLATE
@@ -704,3 +704,26 @@ class PlanAndSchedule:
             config,
         )
         return scheduled_tasks
+
+    def plan(self, messages: List[BaseMessage], config: Optional[RunnableConfig] = None) -> List[Task]:
+        """只生成计划，不执行TASK"""
+        planner = Planer(self.llm, self.tools, self.re_llm).init()
+        tasks = planner.invoke(messages, config)
+        return tasks
+
+    def plan_output(self, messages: List[BaseMessage], config: Optional[RunnableConfig] = None) -> List[
+        Tuple[Task, Any]]:
+        """生成计划，并执行TASK"""
+        planner = Planer(self.llm, self.tools, self.re_llm).init()
+        tasks = planner.invoke(messages, config)
+        # 执行TASK调用
+        schedule_tasks.invoke(
+            SchedulerInput(messages=messages, tasks=tasks, charts=self.charts,
+                           tasks_temporary_save=self.tasks_temporary_save, observations=self.observations,
+                           print_dag=self.print_dag),
+            config,
+        )
+        results = []
+        for index, task in enumerate(tasks):
+            results.append((task, self.observations.get(index + 1)))
+        return tasks

@@ -136,3 +136,23 @@ class RunLLMCompiler(Launch):
         end_time = time.time()
         logging.info(f"===========AI-AGENT total execution time: {end_time - start_time} seconds~\n")
         return results
+
+    def planer_invoke(self) -> List[Task]:
+        """只生成计划，不执行TASK"""
+        start_time = time.time()
+        logging.info(self.chat.message)
+        tasks = self.plan_and_schedule.plan(self.rewrite.info(self.chat.message))
+        end_time = time.time()
+        logging.info(tasks)
+        logging.info(f"===========AI-AGENT total execution time: {end_time - start_time} seconds~\n")
+        return tasks
+
+    def planer_invoke_output(self) -> List[Tuple[Task, Any]]:
+        """生成计划，并执行TASK"""
+        start_time = time.time()
+        logging.info(self.chat.message)
+        tasks = self.plan_and_schedule.plan_output(self.rewrite.info(self.chat.message))
+        end_time = time.time()
+        logging.info(tasks)
+        logging.info(f"===========AI-AGENT total execution time: {end_time - start_time} seconds~\n")
+        return tasks
