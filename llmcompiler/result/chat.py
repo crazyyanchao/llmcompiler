@@ -6,7 +6,7 @@
 """
 import hashlib
 import json
-from typing import List, Dict
+from typing import List, Dict, Any
 from pydantic import BaseModel, Field
 
 from llmcompiler.tools.generic.action_output import Chart, Source
@@ -36,7 +36,7 @@ class ChatResponse(BaseModel):
     """
     对话接口的返回信息
     """
-    response: str = Field(default="", description="纯文本或者带Markdown格式的文本")
+    response: Any = Field(default="", description="纯文本或者带Markdown格式的文本，一般为纯文本也可输出其它格式")
     charts: List[Chart] = Field(default=[], description="图表：表格、折线图等等...")
     source: List[Source] = Field(default=[], description="数据来源")
     labels: List[str] = Field(default=[], description="数据标签")

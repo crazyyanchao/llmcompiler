@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='llmcompiler',
-    version="1.2.15",
+    version="1.2.16",
     author="Yc-Ma",
     author_email="yanchaoma@foxmail.com",
     description='LLMCompiler',

@@ -165,7 +165,7 @@ class Launch(ABC):
                 return OUTPUT_TEMPLATE
         return output
 
-    def response(self, query: str, response: str, charts: List[Chart], source: List[Source], labels: List[str]):
+    def response(self, query: str, response: Any, charts: List[Chart], source: List[Source], labels: List[str]):
         """
         最终响应内容处理
         TODO
