@@ -529,8 +529,8 @@ def schedule_tasks(scheduler_input: SchedulerInput) -> List[ToolMessage]:
     # ^^ We assume each task inserts a different key above to
     # avoid race conditions...
     futures = []
-    retry_after = 0.25  # Retry every quarter second
-    timeout = 5
+    retry_after = 0.1  # Retry every quarter second
+    timeout = 60 * 60
     with ThreadPoolExecutor() as executor:
         for task in tasks:
             tasks_temporary_save.append(task)
@@ -553,9 +553,12 @@ def schedule_tasks(scheduler_input: SchedulerInput) -> List[ToolMessage]:
             else:
                 # No deps or all deps satisfied
                 # can schedule now
-                schedule_task.invoke(dict(task=task, observations=observations, charts=charts,
-                                          tasks_temporary_save=tasks_temporary_save))
+                # schedule_task.invoke(dict(task=task, observations=observations, charts=charts,
+                #                           tasks_temporary_save=tasks_temporary_save))
                 # futures.append(executor.submit(schedule_task.invoke dict(task=task, observations=observations)))
+                futures.append(executor.submit(
+                    schedule_task.invoke, dict(task=task, observations=observations, charts=charts,
+                                               tasks_temporary_save=tasks_temporary_save)))
 
         # All tasks have been submitted or enqueued
         # Wait for them to complete
