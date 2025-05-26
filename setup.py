@@ -21,9 +21,9 @@ setup(
     ],
     python_requires='>=3.9',
     install_requires=[
-        "langgraph=>0.1.19",
-        "langchain=>0.2.12",
-        "langchain-openai=>0.1.20",
+        "langgraph>=0.1.19",
+        "langchain>=0.2.12",
+        "langchain-openai>=0.1.20",
         "pandas>=2.2.2",
         "grandalf"
     ],
