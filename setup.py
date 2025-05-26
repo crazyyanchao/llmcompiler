@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='llmcompiler',
-    version="1.3.0",
+    version="1.3.1",
     author="Yc-Ma",
     author_email="yanchaoma@foxmail.com",
     description='LLMCompiler',
@@ -21,9 +21,9 @@ setup(
     ],
     python_requires='>=3.9',
     install_requires=[
-        "langgraph==0.1.19",
-        "langchain==0.2.12",
-        "langchain-openai==0.1.20",
+        "langgraph=>0.1.19",
+        "langchain=>0.2.12",
+        "langchain-openai=>0.1.20",
         "pandas>=2.2.2",
         "grandalf"
     ],
