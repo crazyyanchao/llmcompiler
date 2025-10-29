@@ -6,7 +6,6 @@ from llmcompiler.tools.basic import Tools
 from llmcompiler.result.chat import ChatRequest
 from langchain_openai.chat_models.base import ChatOpenAI
 from llmcompiler.chat.run import RunLLMCompiler
-from langchain.prompts import PromptTemplate
 
 # chat = ChatRequest(message="How has the return been for Tech stocks since their inception?")
 # tools = Tools.load_tools(["../llmcompiler/tools/basetool/stock_info_fake.py",

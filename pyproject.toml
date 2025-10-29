@@ -1,0 +1,46 @@
+[project]
+name = "llmcompiler"
+version = "2.0.0"
+description = "LLMCompiler"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=1.0.1",
+    "langchain>=1.0.2",
+    "langchain-openai>=1.0.1",
+    "pandas>=2.3.3",
+    "grandalf>=0.8",
+]
+
+authors = [
+    {name = "Yc-Ma", email = "yanchaoma@foxmail.com"},
+]
+
+license = {text = "Apache-2.0"}
+
+keywords = [
+    "LLMCompiler",
+    "Agent",
+    "Natural Language Processing",
+    "LLM",
+    "Machine Learning",
+    "AI",
+    "Compiler",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/crazyyanchao/llmcompiler"
+
+[dependency-groups]
+dev = [
+    "python-dotenv>=1.2.1",
+]
