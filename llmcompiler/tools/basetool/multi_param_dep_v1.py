@@ -39,8 +39,8 @@ class StockReturnFake(BaseTool):
     This tool for demonstration inherits from BaseTool
         because it does not need to define parameters that downstream components can depend on.
     """
-    name = "stock_return_fake"
-    description = render_text_description(
+    name:str = "stock_return_fake"
+    description:str = render_text_description(
         "Function: Retrieve stock return."
         f"Input parameters: {field_descriptions_join(ReturnInputSchema)}"
         f"Return values: {field_descriptions_join(ReturnOutputSchema)}"

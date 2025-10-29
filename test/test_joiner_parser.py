@@ -57,4 +57,4 @@ text = """
 """
 
 result = parser.parse_text_to_join_outputs(text=text)
-print(result.json(ensure_ascii=False))
+print(result.model_dump_json(ensure_ascii=False))

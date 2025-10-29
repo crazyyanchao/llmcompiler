@@ -7,11 +7,12 @@
 import time
 import logging
 from langchain_core.messages import BaseMessage, AIMessage
-from langgraph.graph.graph import CompiledGraph
-from langgraph.pregel import GraphRecursionError
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.errors import GraphRecursionError
 from typing import List, Dict, Tuple, Any
 
-from langgraph.graph import MessageGraph, END
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import MessagesState
 
 from llmcompiler.chat.launch import Launch
 from llmcompiler.graph.joiner import Joiner
@@ -21,7 +22,7 @@ from llmcompiler.result.chat import ChatResponse
 
 class RunLLMCompiler(Launch):
 
-    def init(self) -> CompiledGraph:
+    def init(self) -> CompiledStateGraph:
         """
         :param planer: 定义生成DAG时使用的LLM
         :param joiner: 定义数据处理时使用的LLM
@@ -30,7 +31,7 @@ class RunLLMCompiler(Launch):
         """
         # -----------------------------------初始化工具集和Agent-----------------------------------
         start_time = time.time()
-        graph_builder = MessageGraph()
+        graph_builder = StateGraph(MessagesState)
         graph_builder.add_node("plan_and_schedule", self.plan_and_schedule.init)
         graph_builder.add_node("join", Joiner(self.swi_joiner, self.tools, self.chat.message, self.custom_prompts).init)
         graph_builder.set_entry_point("plan_and_schedule")
@@ -48,7 +49,8 @@ class RunLLMCompiler(Launch):
             print(graph.get_graph().draw_mermaid())
         return graph
 
-    def should_continue(self, state: List[BaseMessage]):
+    def should_continue(self, state: Dict[str, List[BaseMessage]]):
+        state = state["messages"]
         if isinstance(state[-1], AIMessage):
             return END
         return "plan_and_schedule"
@@ -91,14 +93,14 @@ class RunLLMCompiler(Launch):
         logging.info(f"===========AI-AGENT total execution time: {end_time - run_start_time} seconds~\n")
         return self.response(query=self.chat.message, response=response, charts=charts, source=source, labels=labels)
 
-    def initWithoutJoiner(self) -> CompiledGraph:
+    def initWithoutJoiner(self) -> CompiledStateGraph:
         """
         :param planer: 定义生成DAG时使用的LLM
         :param tools: 定义Tools，不传入使用默认函数获取Tools
         """
         # -----------------------------------初始化工具集和Agent-----------------------------------
         start_time = time.time()
-        graph_builder = MessageGraph()
+        graph_builder = StateGraph(MessagesState)
         graph_builder.add_node("plan_and_schedule", self.plan_and_schedule.init)
         graph_builder.set_entry_point("plan_and_schedule")
         graph = graph_builder.compile()

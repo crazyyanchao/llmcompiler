@@ -73,8 +73,8 @@ class OutputSchema(BaseModel):
 
 
 class FundBasicV2(CompilerBaseTool):
-    name = "fund_basic_v2"
-    description = render_text_description(
+    name:str = "fund_basic_v2"
+    description:str = render_text_description(
         "功能：获取公募基金数据列表，包括场内和场外基金。"
         "输入参数：基金代码；交易市场: E场内 O场外（默认E）；存续状态 D摘牌 I发行 L上市中。"
         "返回值：基金代码；简称；管理人；托管人；投资类型；成立日期；到期日期；上市时间；发行日期；退市日期；发行份额(亿)；"

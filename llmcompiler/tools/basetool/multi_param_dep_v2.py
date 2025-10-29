@@ -38,15 +38,15 @@ class StockReturnFake(BaseTool):
     This tool for demonstration inherits from BaseTool
         because it does not need to define parameters that downstream components can depend on.
     """
-    name = "stock_return_fake"
-    description = render_text_description(
+    name:str = "stock_return_fake"
+    description:str = render_text_description(
         "Function: Retrieve stock return."
         f"Input parameters: {field_descriptions_join(ReturnInputSchema)}"
         f"Return values: {field_descriptions_join(ReturnOutputSchema)}"
     )
     args_schema: Type[BaseModel] = ReturnInputSchema
 
-    # @tool_call_by_row_pass_parameters(detect_disable_row_call=False, fill_non_list_row=True, limit=2)
+    @tool_call_by_row_pass_parameters(detect_disable_row_call=False, fill_non_list_row=True, limit=2)
     # @tool_symbol_separated_string(fields=['code'])
     # @tool_remove_suffix(fields=['code'], suffix=['PL', 'GL', 'FT'])
     # @tool_remove_prefix(fields=['code'], prefix=['AA', 'GO', 'MS'])
@@ -61,7 +61,7 @@ class StockReturnFake(BaseTool):
         time.sleep(3)
         code = kwargs.get('code', '')
         date_str = kwargs.get('date', '')
-        start_date = datetime.strptime(date_str, '%Y-%m-%d')
+        start_date = datetime.strptime(date_str, '%Y-%m-%d') if isinstance(date_str, str) else datetime.strptime(date_str[-1], '%Y-%m-%d')
         returns = []
 
         # Assuming there are 10 days of return data.

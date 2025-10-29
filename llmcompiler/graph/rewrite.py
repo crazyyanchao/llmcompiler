@@ -12,7 +12,7 @@ from typing import Sequence
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import BaseMessage, HumanMessage
-from langchain.prompts import PromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, \
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, \
     HumanMessagePromptTemplate
 
 from llmcompiler.few_shot.few_shot import BaseFewShot
@@ -122,7 +122,7 @@ class Rewrite(BaseRewrite):
         self.few_shot = few_shot
         self.custom_prompts = custom_prompts
 
-    def info(self, message) -> List[HumanMessage]:
+    def info(self, message) -> Dict[str,List[HumanMessage]]:
         """
         User questions Add more background information.
         """
@@ -134,9 +134,9 @@ class Rewrite(BaseRewrite):
             kwargs = inputs_format_message(text=message, few_shot=self.few_shot, time_parser=True)
             new_message = rewrite_info_prompt.format(info=kwargs['info'], examples=kwargs['examples'], question=message)
             print(new_message)
-            return [HumanMessage(content=new_message)]
+            return {"messages": [HumanMessage(content=new_message)]}
         except ValueError:
-            return [HumanMessage(content=message)]
+            return {"messages": [HumanMessage(content=message)]}
 
     # def info(self, message) -> List[BaseMessage]:
     #     """

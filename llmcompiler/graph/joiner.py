@@ -9,14 +9,14 @@ import logging
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.tools import BaseTool
 from langchain_core.utils.json import parse_json_markdown
-from langchain.chains.llm import LLMChain
 from langchain_core.output_parsers import BaseLLMOutputParser
 from langchain_core.output_parsers.base import T
 from langchain_core.outputs import Generation
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, PromptTemplate, MessagesPlaceholder
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.messages import AIMessage, ChatMessage
 from typing import List, Union, Sequence, Any
+from langchain_core.runnables import RunnableLambda
 
 from langchain_core.messages import (
     BaseMessage,
@@ -62,7 +62,7 @@ class Joiner:
         self.question = question
         self.custom_prompts = custom_prompts
 
-    def init(self, messages: list):
+    def init(self, messages: dict[str, list[BaseMessage]]):
         joiner_system_prompt_1 = get_custom_or_default(self.custom_prompts, "JOINER_SYSTEM_PROMPT_1",
                                                        JOINER_SYSTEM_PROMPT_1)
         joiner_system_prompt_2 = get_custom_or_default(self.custom_prompts, "JOINER_SYSTEM_PROMPT_2",
@@ -89,11 +89,12 @@ class Joiner:
         )  # You can optionally add examples
         messages = self.select_recent_messages(messages)
         llm = auto_switch_llm(self.llm, [prompt, messages])
-        chain: LLMChain = LLMChain(llm=llm, prompt=prompt, output_parser=JoinerParser(self.tools), verbose=False)
-        response = chain.invoke(input=messages)
-        return response['text']
+        chain = prompt | llm | RunnableLambda(JoinerParser(self.tools).parse_result)
+        response = chain.invoke(messages)
+        return {"messages": response}
 
-    def select_recent_messages(self, messages: list) -> dict:
+    def select_recent_messages(self, messages: dict[str, list[BaseMessage]]) -> dict:
+        messages = messages["messages"]
         selected = []
         for msg in messages[::-1]:
             selected.append(msg)
@@ -123,7 +124,7 @@ class JoinerParser(BaseLLMOutputParser):
         self.tools = tools
 
     def parse_result(self, result: List[Generation], *, partial: bool = False) -> T:
-        decision = self.parse_text_to_join_outputs(result[0].text)
+        decision = self.parse_text_to_join_outputs(result.text)
         return self._parse_joiner_output(decision)
 
     def parse_text_to_join_outputs(self, text: str) -> JoinOutputs:

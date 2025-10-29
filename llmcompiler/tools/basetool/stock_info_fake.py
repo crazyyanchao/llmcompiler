@@ -46,8 +46,8 @@ class StockInfoFake(CompilerBaseTool):
     This tool for demonstration inherits from CompilerBaseTool
         because it needs to define parameters that downstream components can depend on.
     """
-    name = "stock_info_fake"
-    description = render_text_description(
+    name:str = "stock_info_fake"
+    description:str = render_text_description(
         "Function: Retrieve basic stock information."
         f"Input parameters: {field_descriptions_join(InfoInputSchema)}"
         f"Return values: {field_descriptions_join(InfoOutputSchema)}"

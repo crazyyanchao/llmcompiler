@@ -79,24 +79,27 @@ class Planer:
             formatted_dt_now=dt_now,
         )
 
-        def should_replan(state: list):
+        def should_replan(state: dict[str,list[BaseMessage]]):
             """
             Context is passed as a system message
             state中倒数第一个或者第二个信息是SystemMessage时，说明是由Joiner处理过的信息，一般需要通过`replanner`分支处理
             """
-            if len(state) == 1:
-                return isinstance(state[-1], SystemMessage)
-            elif len(state) > 1:
-                return isinstance(state[-2], SystemMessage)
+            messages = state["messages"]
+            if len(messages) == 1:
+                return isinstance(messages[-1], SystemMessage)
+            elif len(messages) > 1:
+                return isinstance(messages[-2], SystemMessage)
             else:
                 return False
 
-        def wrap_messages(state: list):
-            return {"messages": state}
+        def wrap_messages(state: dict[str,list[BaseMessage]]):
+            messages = state["messages"]
+            return {"messages": messages}
 
-        def wrap_and_get_last_index(state: list):
+        def wrap_and_get_last_index(state: dict[str,list[BaseMessage]]):
+            messages = state["messages"]
             next_task = 0
-            for message in state[::-1]:
+            for message in messages[::-1]:
                 if isinstance(message, ToolMessage):
                     next_task = message.additional_kwargs["idx"] + 1
                     break

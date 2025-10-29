@@ -12,8 +12,7 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import ChatMessage
 from langchain_core.tools import BaseTool
 from langgraph.constants import END
-from langgraph.graph.graph import CompiledGraph
-from langchain.prompts import PromptTemplate
+from langgraph.graph.state import CompiledStateGraph
 
 from llmcompiler.few_shot.few_shot import BaseFewShot
 from llmcompiler.graph.output_parser import Task
@@ -22,6 +21,9 @@ from llmcompiler.graph.rewrite import Rewrite
 from llmcompiler.graph.token_calculate import SwitchLLM
 from llmcompiler.result.chat import ChatResponse, ChatRequest
 from llmcompiler.tools.generic.action_output import Chart, Source
+from langchain_core.messages import (
+    BaseMessage
+)
 
 OUTPUT_TEMPLATE = "I've considered {iteration} times and still don't fully understand your question. Could you ask the question in another way? If there are relevant charts or data you can refer to temporarily."
 
@@ -120,7 +122,7 @@ class Launch(ABC):
             raise Exception("RePlaner is not initialized!")
 
     @abstractmethod
-    def init(self, *args: Any, **kwargs: Any) -> CompiledGraph:
+    def init(self, *args: Any, **kwargs: Any) -> CompiledStateGraph:
         """
         Initialize the graph and define the graph structure.
         """
@@ -130,7 +132,7 @@ class Launch(ABC):
         """Run graph."""
 
     @abstractmethod
-    def initWithoutJoiner(self, *args: Any, **kwargs: Any) -> CompiledGraph:
+    def initWithoutJoiner(self, *args: Any, **kwargs: Any) -> CompiledStateGraph:
         """
         Initialize the graph and define the graph structure.
         """
@@ -139,19 +141,19 @@ class Launch(ABC):
     def runWithoutJoiner(self) -> List[Tuple[Task, Any]]:
         """Run graph without joiner,returns the task and task execution result."""
 
-    def response_str(self, final_step: Dict, charts: List[Chart], iteration: int) -> str:
+    def response_str(self, final_step: Dict[str, List[BaseMessage]], charts: List[Chart], iteration: int) -> str:
         if 'join' in final_step:
-            message = final_step['join'][-1]
-            if 'Error Answer' == final_step['join'][-1].content or \
+            message = final_step['join']['messages'][-1]
+            if 'Error Answer' == final_step['join']['messages'][-1].content or \
                     'API request failed after maximum retries' == message.content:
                 return OUTPUT_TEMPLATE.format(iteration=iteration)
             elif isinstance(message, ChatMessage):
                 return OUTPUT_TEMPLATE.format(iteration=iteration)
             else:
-                output = final_step['join'][-1].content
+                output = final_step['join']['messages'][-1].content
                 return self.reset_output(self.response_str_check_tool(output), charts)
         elif END in final_step:
-            output = final_step[END][-1].content
+            output = final_step[END]['messages'][-1].content
             return self.reset_output(self.response_str_check_tool(output), charts)
         else:
             return OUTPUT_TEMPLATE.format(iteration=iteration)

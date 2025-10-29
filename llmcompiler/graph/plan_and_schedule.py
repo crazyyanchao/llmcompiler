@@ -508,7 +508,7 @@ TOOL_RESPONSE_PROMPT = PromptTemplate(input_variables=["response", "input"], tem
 
 
 @as_runnable
-def schedule_tasks(scheduler_input: SchedulerInput) -> List[ToolMessage]:
+def schedule_tasks(scheduler_input: SchedulerInput) -> Dict[str, List[ToolMessage]]:
     """Group the tasks into a DAG schedule."""
     # For streaming, we are making a few simplifying assumption:
     # 1. The LLM does not create cyclic dependencies
@@ -580,7 +580,7 @@ def schedule_tasks(scheduler_input: SchedulerInput) -> List[ToolMessage]:
                                              additional_kwargs={"idx": k, 'args': task_args}))
     if scheduler_input['print_dag']:
         _print_dag(tasks_temporary_save)
-    return tool_messages
+    return {"messages": tool_messages}
 
 
 def _print_dag(tasks_temporary_save: List[Task]):
