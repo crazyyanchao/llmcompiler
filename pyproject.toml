@@ -37,6 +37,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[tool.setuptools.packages.find]
+include = ["llmcompiler*"]
+exclude = ["images*", "script*", "test*", "docs*"]
+
 [project.urls]
 Homepage = "https://github.com/crazyyanchao/llmcompiler"
 
