@@ -103,8 +103,8 @@ class Planer:
                 if isinstance(message, ToolMessage):
                     next_task = message.additional_kwargs["idx"] + 1
                     break
-            state[-1].content = state[-1].content + f" - Begin counting at : {next_task}\n"
-            return {"messages": state}
+            messages[-1].content = messages[-1].content + f" - Begin counting at : {next_task}\n"
+            return {"messages": messages}
 
         def select_llm(prompt: PromptValue):
             messages = prompt.to_messages()
